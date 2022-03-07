@@ -3,7 +3,7 @@
 CC ?= gcc
 CFLAGS += -O3 -g -Wall -std=c11
 BUILD_DIR = build
-TARGET = $(BUILD_DIR)/hextoggle
+TARGET = ./$(BUILD_DIR)/hextoggle
 
 include config.mk
 
@@ -15,7 +15,7 @@ HEADERS = $(wildcard src/*.h)
 SOURCES = $(wildcard src/*.c)
 OBJECTS = $(patsubst src/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
 
-.PHONY: default build all clean test install uninstall
+.PHONY: default build all clean install uninstall test benchmark
 .PRECIOUS: $(TARGET) $(OBJECTS)
 
 build: $(TARGET)
@@ -32,12 +32,6 @@ $(TARGET): $(OBJECTS)
 clean:
 	-rm -rf $(BUILD_DIR)
 
-test: build
-	echo test >$(BUILD_DIR)/input.txt
-	./$(TARGET) $(BUILD_DIR)/input.txt $(BUILD_DIR)/hex.txt
-	./$(TARGET) $(BUILD_DIR)/hex.txt $(BUILD_DIR)/output.txt
-	diff -q $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt
-
 install: build
 	mkdir -p $(PREFIX)/bin
 	cp -f $(TARGET) $(PREFIX)/bin
@@ -45,3 +39,16 @@ install: build
 
 uninstall:
 	rm -f $(PREFIX)/bin/hextoggle
+
+test: build
+	echo test >$(BUILD_DIR)/input.txt
+	$(TARGET) $(BUILD_DIR)/input.txt $(BUILD_DIR)/hex.txt
+	$(TARGET) $(BUILD_DIR)/hex.txt $(BUILD_DIR)/output.txt
+	diff -q $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt
+	rm $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt
+
+benchmark: build
+	dd if=/dev/random of="$(BUILD_DIR)/bin.txt" bs=1048576 count=64
+	time $(TARGET) "$(BUILD_DIR)/bin.txt" "$(BUILD_DIR)/hex.txt"
+	time $(TARGET) "$(BUILD_DIR)/hex.txt" "$(BUILD_DIR)/bin.txt"
+	rm "$(BUILD_DIR)/bin.txt" "$(BUILD_DIR)/hex.txt"
