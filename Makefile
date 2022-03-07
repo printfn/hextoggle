@@ -27,7 +27,7 @@ $(BUILD_DIR)/%.o: src/%.c $(HEADERS) config.mk Makefile
 	$(CC) $(CFLAGS) -c -DHEXTOGGLE_VERSION="$(VERSION)" $< -o $@
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -Wall -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -Wall -o $@ $(LDLIBS)
 
 clean:
 	-rm -rf $(BUILD_DIR)
