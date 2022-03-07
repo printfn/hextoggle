@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "tempfile.h"
+#include "utils.h"
 
 static const char *header = "| hextoggle output file";
 enum { HEADER_LENGTH = 23 };
@@ -152,94 +153,21 @@ static int cleanup_files(FILE *input, FILE *temp_output,
     return 0;
 }
 
-/** Convert a hexadecimal character (i.e. [0-9a-fA-F]) to an integer
-  * value between 0 and 15 inclusive. */
-static int hex_char_to_int(char ch) {
-    switch (ch) {
-        case '0': return 0;
-        case '1': return 1;
-        case '2': return 2;
-        case '3': return 3;
-        case '4': return 4;
-        case '5': return 5;
-        case '6': return 6;
-        case '7': return 7;
-        case '8': return 8;
-        case '9': return 9;
-        case 'a':
-        case 'A':
-            return 10;
-        case 'b':
-        case 'B':
-            return 11;
-        case 'c':
-        case 'C':
-            return 12;
-        case 'd':
-        case 'D':
-            return 13;
-        case 'e':
-        case 'E':
-            return 14;
-        case 'f':
-        case 'F':
-            return 15;
-        default:
-            fprintf(stderr, "Internal error: invalid hex character '%c'\n", ch);
-            return 0;
-    }
-}
-
-/** Convert a number between 0 and 15 (inclusive) to a hex digit */
-static char to_hex(int number) {
-    switch (number) {
-        case 0: return '0';
-        case 1: return '1';
-        case 2: return '2';
-        case 3: return '3';
-        case 4: return '4';
-        case 5: return '5';
-        case 6: return '6';
-        case 7: return '7';
-        case 8: return '8';
-        case 9: return '9';
-        case 10: return 'a';
-        case 11: return 'b';
-        case 12: return 'c';
-        case 13: return 'd';
-        case 14: return 'e';
-        case 15: return 'f';
-        default:
-            fprintf(stderr, "Internal error: cannot convert %d to a hex digit\n", number);
-            return '0';
-    }
-}
-
-/** Returns a 'safe' version of the given character. All control/formatting characters will
-  * be replaced with '.' */
-static char safe_char(char ch) {
-    if (ch >= ' ' && ch <= '~') {
-        return ch;
-    } else {
-        return '.';
-    }
-}
-
 /* [0000000000 00000000000]4865 6c6c 6f2c 2057 6f72 6c64 210a 0a23|Hello, World!..#\n
    0         1         2         3         4         5         6         7         8
    012345678901234567890123456789012345678901234567890123456789012345678901234567890 */
 static void char_block_to_hex(char *data, uint64_t data_size, uint64_t addr, char *output) {
     output[0] = '[';
-    output[1] = to_hex((addr >> 36) & 0xF);
-    output[2] = to_hex((addr >> 32) & 0xF);
-    output[3] = to_hex((addr >> 28) & 0xF);
-    output[4] = to_hex((addr >> 24) & 0xF);
-    output[5] = to_hex((addr >> 20) & 0xF);
-    output[6] = to_hex((addr >> 16) & 0xF);
-    output[7] = to_hex((addr >> 12) & 0xF);
-    output[8] = to_hex((addr >> 8) & 0xF);
-    output[9] = to_hex((addr >> 4) & 0xF);
-    output[10] = to_hex(addr & 0xF);
+    output[1] = int_to_hex_char((addr >> 36) & 0xF);
+    output[2] = int_to_hex_char((addr >> 32) & 0xF);
+    output[3] = int_to_hex_char((addr >> 28) & 0xF);
+    output[4] = int_to_hex_char((addr >> 24) & 0xF);
+    output[5] = int_to_hex_char((addr >> 20) & 0xF);
+    output[6] = int_to_hex_char((addr >> 16) & 0xF);
+    output[7] = int_to_hex_char((addr >> 12) & 0xF);
+    output[8] = int_to_hex_char((addr >> 8) & 0xF);
+    output[9] = int_to_hex_char((addr >> 4) & 0xF);
+    output[10] = int_to_hex_char(addr & 0xF);
     output[11] = ' ';
     output[12] = '0' + addr / 10000000000 % 10;
     output[13] = '0' + addr / 1000000000 % 10;
@@ -253,45 +181,45 @@ static void char_block_to_hex(char *data, uint64_t data_size, uint64_t addr, cha
     output[21] = '0' + addr / 10 % 10;
     output[22] = '0' + addr % 10;
     output[23] = ']';
-    output[24] = 0 < data_size ? to_hex((int)((data[0] >> 4) & 0xF)) : ' ';
-    output[25] = 0 < data_size ? to_hex((int)(data[0] & 0xF)) : ' ';
-    output[26] = 1 < data_size ? to_hex((int)((data[1] >> 4) & 0xF)) : ' ';
-    output[27] = 1 < data_size ? to_hex((int)(data[1] & 0xF)) : ' ';
+    output[24] = 0 < data_size ? int_to_hex_char((int)((data[0] >> 4) & 0xF)) : ' ';
+    output[25] = 0 < data_size ? int_to_hex_char((int)(data[0] & 0xF)) : ' ';
+    output[26] = 1 < data_size ? int_to_hex_char((int)((data[1] >> 4) & 0xF)) : ' ';
+    output[27] = 1 < data_size ? int_to_hex_char((int)(data[1] & 0xF)) : ' ';
     output[28] = ' ';
-    output[29] = 2 < data_size ? to_hex((int)((data[2] >> 4) & 0xF)) : ' ';
-    output[30] = 2 < data_size ? to_hex((int)(data[2] & 0xF)) : ' ';
-    output[31] = 3 < data_size ? to_hex((int)((data[3] >> 4) & 0xF)) : ' ';
-    output[32] = 3 < data_size ? to_hex((int)(data[3] & 0xF)) : ' ';
+    output[29] = 2 < data_size ? int_to_hex_char((int)((data[2] >> 4) & 0xF)) : ' ';
+    output[30] = 2 < data_size ? int_to_hex_char((int)(data[2] & 0xF)) : ' ';
+    output[31] = 3 < data_size ? int_to_hex_char((int)((data[3] >> 4) & 0xF)) : ' ';
+    output[32] = 3 < data_size ? int_to_hex_char((int)(data[3] & 0xF)) : ' ';
     output[33] = ' ';
-    output[34] = 4 < data_size ? to_hex((int)((data[4] >> 4) & 0xF)) : ' ';
-    output[35] = 4 < data_size ? to_hex((int)(data[4] & 0xF)) : ' ';
-    output[36] = 5 < data_size ? to_hex((int)((data[5] >> 4) & 0xF)) : ' ';
-    output[37] = 5 < data_size ? to_hex((int)(data[5] & 0xF)) : ' ';
+    output[34] = 4 < data_size ? int_to_hex_char((int)((data[4] >> 4) & 0xF)) : ' ';
+    output[35] = 4 < data_size ? int_to_hex_char((int)(data[4] & 0xF)) : ' ';
+    output[36] = 5 < data_size ? int_to_hex_char((int)((data[5] >> 4) & 0xF)) : ' ';
+    output[37] = 5 < data_size ? int_to_hex_char((int)(data[5] & 0xF)) : ' ';
     output[38] = ' ';
-    output[39] = 6 < data_size ? to_hex((int)((data[6] >> 4) & 0xF)) : ' ';
-    output[40] = 6 < data_size ? to_hex((int)(data[6] & 0xF)) : ' ';
-    output[41] = 7 < data_size ? to_hex((int)((data[7] >> 4) & 0xF)) : ' ';
-    output[42] = 7 < data_size ? to_hex((int)(data[7] & 0xF)) : ' ';
+    output[39] = 6 < data_size ? int_to_hex_char((int)((data[6] >> 4) & 0xF)) : ' ';
+    output[40] = 6 < data_size ? int_to_hex_char((int)(data[6] & 0xF)) : ' ';
+    output[41] = 7 < data_size ? int_to_hex_char((int)((data[7] >> 4) & 0xF)) : ' ';
+    output[42] = 7 < data_size ? int_to_hex_char((int)(data[7] & 0xF)) : ' ';
     output[43] = ' ';
-    output[44] = 8 < data_size ? to_hex((int)((data[8] >> 4) & 0xF)) : ' ';
-    output[45] = 8 < data_size ? to_hex((int)(data[8] & 0xF)) : ' ';
-    output[46] = 9 < data_size ? to_hex((int)((data[9] >> 4) & 0xF)) : ' ';
-    output[47] = 9 < data_size ? to_hex((int)(data[9] & 0xF)) : ' ';
+    output[44] = 8 < data_size ? int_to_hex_char((int)((data[8] >> 4) & 0xF)) : ' ';
+    output[45] = 8 < data_size ? int_to_hex_char((int)(data[8] & 0xF)) : ' ';
+    output[46] = 9 < data_size ? int_to_hex_char((int)((data[9] >> 4) & 0xF)) : ' ';
+    output[47] = 9 < data_size ? int_to_hex_char((int)(data[9] & 0xF)) : ' ';
     output[48] = ' ';
-    output[49] = 10 < data_size ? to_hex((int)((data[10] >> 4) & 0xF)) : ' ';
-    output[50] = 10 < data_size ? to_hex((int)(data[10] & 0xF)) : ' ';
-    output[51] = 11 < data_size ? to_hex((int)((data[11] >> 4) & 0xF)) : ' ';
-    output[52] = 11 < data_size ? to_hex((int)(data[11] & 0xF)) : ' ';
+    output[49] = 10 < data_size ? int_to_hex_char((int)((data[10] >> 4) & 0xF)) : ' ';
+    output[50] = 10 < data_size ? int_to_hex_char((int)(data[10] & 0xF)) : ' ';
+    output[51] = 11 < data_size ? int_to_hex_char((int)((data[11] >> 4) & 0xF)) : ' ';
+    output[52] = 11 < data_size ? int_to_hex_char((int)(data[11] & 0xF)) : ' ';
     output[53] = ' ';
-    output[54] = 12 < data_size ? to_hex((int)((data[12] >> 4) & 0xF)) : ' ';
-    output[55] = 12 < data_size ? to_hex((int)(data[12] & 0xF)) : ' ';
-    output[56] = 13 < data_size ? to_hex((int)((data[13] >> 4) & 0xF)) : ' ';
-    output[57] = 13 < data_size ? to_hex((int)(data[13] & 0xF)) : ' ';
+    output[54] = 12 < data_size ? int_to_hex_char((int)((data[12] >> 4) & 0xF)) : ' ';
+    output[55] = 12 < data_size ? int_to_hex_char((int)(data[12] & 0xF)) : ' ';
+    output[56] = 13 < data_size ? int_to_hex_char((int)((data[13] >> 4) & 0xF)) : ' ';
+    output[57] = 13 < data_size ? int_to_hex_char((int)(data[13] & 0xF)) : ' ';
     output[58] = ' ';
-    output[59] = 14 < data_size ? to_hex((int)((data[14] >> 4) & 0xF)) : ' ';
-    output[60] = 14 < data_size ? to_hex((int)(data[14] & 0xF)) : ' ';
-    output[61] = 15 < data_size ? to_hex((int)((data[15] >> 4) & 0xF)) : ' ';
-    output[62] = 15 < data_size ? to_hex((int)(data[15] & 0xF)) : ' ';
+    output[59] = 14 < data_size ? int_to_hex_char((int)((data[14] >> 4) & 0xF)) : ' ';
+    output[60] = 14 < data_size ? int_to_hex_char((int)(data[14] & 0xF)) : ' ';
+    output[61] = 15 < data_size ? int_to_hex_char((int)((data[15] >> 4) & 0xF)) : ' ';
+    output[62] = 15 < data_size ? int_to_hex_char((int)(data[15] & 0xF)) : ' ';
     output[63] = '|';
     output[64] = 0 < data_size ? safe_char(data[0]) : ' ';
     output[65] = 1 < data_size ? safe_char(data[1]) : ' ';
@@ -339,10 +267,19 @@ static FromHexData init_from_hex_data() {
 static int hex_to_chars(FromHexData *data, char c, FILE *output_stream) {
     if (data->prev_byte) {
         if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-            char output = (char)(hex_char_to_int(data->prev_byte) << 4);
-            output += hex_char_to_int(c);
-            if (output_stream)
+            int first_char = hex_char_to_int(data->prev_byte);
+            if (first_char < 0) {
+                return 1;
+            }
+            char output = (char)(first_char << 4);
+            int second_char = hex_char_to_int(c);
+            if (second_char < 0) {
+                return 1;
+            }
+            output += second_char;
+            if (output_stream) {
                 fputc(output, output_stream);
+            }
             data->prev_byte = 0;
             return 0;
         } else {
