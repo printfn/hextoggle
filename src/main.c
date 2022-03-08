@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bin_to_hex.h"
 #include "tempfile.h"
 #include "utils.h"
 
@@ -153,103 +154,6 @@ static int cleanup_files(FILE *input, FILE *temp_output,
     return 0;
 }
 
-/* [0000000000 00000000000]4865 6c6c 6f2c 2057 6f72 6c64 210a 0a23|Hello, World!..#\n
-   0         1         2         3         4         5         6         7         8
-   012345678901234567890123456789012345678901234567890123456789012345678901234567890 */
-static void char_block_to_hex(char *data, uint64_t data_size, uint64_t addr, char *output) {
-    output[0] = '[';
-    output[1] = int_to_hex_char((addr >> 36) & 0xF);
-    output[2] = int_to_hex_char((addr >> 32) & 0xF);
-    output[3] = int_to_hex_char((addr >> 28) & 0xF);
-    output[4] = int_to_hex_char((addr >> 24) & 0xF);
-    output[5] = int_to_hex_char((addr >> 20) & 0xF);
-    output[6] = int_to_hex_char((addr >> 16) & 0xF);
-    output[7] = int_to_hex_char((addr >> 12) & 0xF);
-    output[8] = int_to_hex_char((addr >> 8) & 0xF);
-    output[9] = int_to_hex_char((addr >> 4) & 0xF);
-    output[10] = int_to_hex_char(addr & 0xF);
-    output[11] = ' ';
-    output[12] = '0' + addr / 10000000000 % 10;
-    output[13] = '0' + addr / 1000000000 % 10;
-    output[14] = '0' + addr / 100000000 % 10;
-    output[15] = '0' + addr / 10000000 % 10;
-    output[16] = '0' + addr / 1000000 % 10;
-    output[17] = '0' + addr / 100000 % 10;
-    output[18] = '0' + addr / 10000 % 10;
-    output[19] = '0' + addr / 1000 % 10;
-    output[20] = '0' + addr / 100 % 10;
-    output[21] = '0' + addr / 10 % 10;
-    output[22] = '0' + addr % 10;
-    output[23] = ']';
-    output[24] = 0 < data_size ? int_to_hex_char((int)((data[0] >> 4) & 0xF)) : ' ';
-    output[25] = 0 < data_size ? int_to_hex_char((int)(data[0] & 0xF)) : ' ';
-    output[26] = 1 < data_size ? int_to_hex_char((int)((data[1] >> 4) & 0xF)) : ' ';
-    output[27] = 1 < data_size ? int_to_hex_char((int)(data[1] & 0xF)) : ' ';
-    output[28] = ' ';
-    output[29] = 2 < data_size ? int_to_hex_char((int)((data[2] >> 4) & 0xF)) : ' ';
-    output[30] = 2 < data_size ? int_to_hex_char((int)(data[2] & 0xF)) : ' ';
-    output[31] = 3 < data_size ? int_to_hex_char((int)((data[3] >> 4) & 0xF)) : ' ';
-    output[32] = 3 < data_size ? int_to_hex_char((int)(data[3] & 0xF)) : ' ';
-    output[33] = ' ';
-    output[34] = 4 < data_size ? int_to_hex_char((int)((data[4] >> 4) & 0xF)) : ' ';
-    output[35] = 4 < data_size ? int_to_hex_char((int)(data[4] & 0xF)) : ' ';
-    output[36] = 5 < data_size ? int_to_hex_char((int)((data[5] >> 4) & 0xF)) : ' ';
-    output[37] = 5 < data_size ? int_to_hex_char((int)(data[5] & 0xF)) : ' ';
-    output[38] = ' ';
-    output[39] = 6 < data_size ? int_to_hex_char((int)((data[6] >> 4) & 0xF)) : ' ';
-    output[40] = 6 < data_size ? int_to_hex_char((int)(data[6] & 0xF)) : ' ';
-    output[41] = 7 < data_size ? int_to_hex_char((int)((data[7] >> 4) & 0xF)) : ' ';
-    output[42] = 7 < data_size ? int_to_hex_char((int)(data[7] & 0xF)) : ' ';
-    output[43] = ' ';
-    output[44] = 8 < data_size ? int_to_hex_char((int)((data[8] >> 4) & 0xF)) : ' ';
-    output[45] = 8 < data_size ? int_to_hex_char((int)(data[8] & 0xF)) : ' ';
-    output[46] = 9 < data_size ? int_to_hex_char((int)((data[9] >> 4) & 0xF)) : ' ';
-    output[47] = 9 < data_size ? int_to_hex_char((int)(data[9] & 0xF)) : ' ';
-    output[48] = ' ';
-    output[49] = 10 < data_size ? int_to_hex_char((int)((data[10] >> 4) & 0xF)) : ' ';
-    output[50] = 10 < data_size ? int_to_hex_char((int)(data[10] & 0xF)) : ' ';
-    output[51] = 11 < data_size ? int_to_hex_char((int)((data[11] >> 4) & 0xF)) : ' ';
-    output[52] = 11 < data_size ? int_to_hex_char((int)(data[11] & 0xF)) : ' ';
-    output[53] = ' ';
-    output[54] = 12 < data_size ? int_to_hex_char((int)((data[12] >> 4) & 0xF)) : ' ';
-    output[55] = 12 < data_size ? int_to_hex_char((int)(data[12] & 0xF)) : ' ';
-    output[56] = 13 < data_size ? int_to_hex_char((int)((data[13] >> 4) & 0xF)) : ' ';
-    output[57] = 13 < data_size ? int_to_hex_char((int)(data[13] & 0xF)) : ' ';
-    output[58] = ' ';
-    output[59] = 14 < data_size ? int_to_hex_char((int)((data[14] >> 4) & 0xF)) : ' ';
-    output[60] = 14 < data_size ? int_to_hex_char((int)(data[14] & 0xF)) : ' ';
-    output[61] = 15 < data_size ? int_to_hex_char((int)((data[15] >> 4) & 0xF)) : ' ';
-    output[62] = 15 < data_size ? int_to_hex_char((int)(data[15] & 0xF)) : ' ';
-    output[63] = '|';
-    output[64] = 0 < data_size ? safe_char(data[0]) : ' ';
-    output[65] = 1 < data_size ? safe_char(data[1]) : ' ';
-    output[66] = 2 < data_size ? safe_char(data[2]) : ' ';
-    output[67] = 3 < data_size ? safe_char(data[3]) : ' ';
-    output[68] = 4 < data_size ? safe_char(data[4]) : ' ';
-    output[69] = 5 < data_size ? safe_char(data[5]) : ' ';
-    output[70] = 6 < data_size ? safe_char(data[6]) : ' ';
-    output[71] = 7 < data_size ? safe_char(data[7]) : ' ';
-    output[72] = 8 < data_size ? safe_char(data[8]) : ' ';
-    output[73] = 9 < data_size ? safe_char(data[9]) : ' ';
-    output[74] = 10 < data_size ? safe_char(data[10]) : ' ';
-    output[75] = 11 < data_size ? safe_char(data[11]) : ' ';
-    output[76] = 12 < data_size ? safe_char(data[12]) : ' ';
-    output[77] = 13 < data_size ? safe_char(data[13]) : ' ';
-    output[78] = 14 < data_size ? safe_char(data[14]) : ' ';
-    output[79] = 15 < data_size ? safe_char(data[15]) : ' ';
-    output[80] = '\n';
-}
-
-static uint64_t char_blocks_to_hex(char *data, uint64_t data_size, uint64_t addr, char *output) {
-    uint64_t block_idx = 0;
-    for (uint64_t block_offset = 0; block_offset < data_size; block_offset += 16) {
-        uint64_t block_size = data_size - block_offset < 16 ? data_size - block_offset : 16;
-        char_block_to_hex(data + block_offset, block_size, addr + block_offset, output + 81 * block_idx);
-        ++block_idx;
-    }
-    return block_idx;
-}
-
 typedef struct {
     int inside_comment; /* potentially nested comments */
     bool skip_line;
@@ -369,12 +273,12 @@ static int try_to_hex(FILE *input_file, FILE *output_file,
         fputc('\n', output_file);
     }
     
-    /* define `block_size` as a compile-time constant,
-    see https://stackoverflow.com/a/1674459 */
-    enum { block_size = 16 };
+    // BLOCK_BATCH describes the number of blocks (sets of 16 bytes)
+    // to convert at once. Each block produces 81 bytes of output.
+    enum { BLOCK_BATCH = 64 };
     uint64_t addr = 0;
-    char output[81 * block_size];
-    char input[16 * block_size];
+    char output[81 * BLOCK_BATCH];
+    char input[16 * BLOCK_BATCH];
     
     /* read in chars already read in by try_from_hex */
     memcpy(input, from_hex_read_buffer, from_hex_read_buffer_length);
@@ -383,15 +287,15 @@ static int try_to_hex(FILE *input_file, FILE *output_file,
         size_t i = from_hex_read_buffer_length
             + fread(input + from_hex_read_buffer_length,
                     1,
-                    16 * block_size - from_hex_read_buffer_length,
+                    16 * BLOCK_BATCH - from_hex_read_buffer_length,
                     input_file);
         from_hex_read_buffer_length = 0;
-        uint64_t blocks = char_blocks_to_hex(input, i, addr, output);
+        uint64_t output_data_len = bin_data_to_hex(input, i, addr, output);
         addr += i;
         if (output_file) {
-            fwrite(output, 81 * blocks, 1, output_file);
+            fwrite(output, output_data_len, 1, output_file);
         }
-        if (i < 16 * block_size) {
+        if (i < 16 * BLOCK_BATCH) {
             break;
         }
     }
