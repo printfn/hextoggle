@@ -230,7 +230,7 @@ static int hex_to_chars(FromHexData *data, char c, FILE *output_stream) {
 
 /* Return values: 0 for success, 1 for retry as to_hex, 2 for error */
 static int try_from_hex(FILE *input_file, FILE *output_file,
-                 char *from_hex_read_buffer, int *from_hex_read_buffer_length,
+                 char *from_hex_read_buffer, size_t *from_hex_read_buffer_length,
                  bool check_header) {
     int ci;
     unsigned long long i = 0;
@@ -267,7 +267,7 @@ static int try_from_hex(FILE *input_file, FILE *output_file,
 }
 
 static int try_to_hex(FILE *input_file, FILE *output_file,
-               const char *from_hex_read_buffer, int from_hex_read_buffer_length) {
+               const char *from_hex_read_buffer, size_t from_hex_read_buffer_length) {
     if (output_file) {
         fputs(header, output_file);
         fputc('\n', output_file);
@@ -287,7 +287,7 @@ static int try_to_hex(FILE *input_file, FILE *output_file,
         size_t i = from_hex_read_buffer_length
             + fread(input + from_hex_read_buffer_length,
                     1,
-                    16 * BLOCK_BATCH - from_hex_read_buffer_length,
+                    16 * (size_t)BLOCK_BATCH - from_hex_read_buffer_length,
                     input_file);
         from_hex_read_buffer_length = 0;
         uint64_t output_data_len = bin_data_to_hex(input, i, addr, output);
@@ -358,7 +358,7 @@ int main(int argc, const char *argv[]) {
     }
     
     /* store read characters in case we need to retry as to_hex. */
-    int from_hex_read_buffer_length = 0;
+    size_t from_hex_read_buffer_length = 0;
     char from_hex_read_buffer[HEADER_LENGTH] = {0};
 
     if (parse_args_result.only_encode) {
