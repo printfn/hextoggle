@@ -45,7 +45,7 @@ test: build
 	$(TARGET) $(BUILD_DIR)/input.txt $(BUILD_DIR)/hex.txt
 	$(TARGET) $(BUILD_DIR)/hex.txt $(BUILD_DIR)/output.txt
 	diff -q $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt
-	rm $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt
+	rm $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt $(BUILD_DIR)/hex.txt
 
 benchmark: build
 	dd if=/dev/random of="$(BUILD_DIR)/bin.txt" bs=1048576 count=64
