@@ -24,10 +24,10 @@ all: build
 
 $(BUILD_DIR)/%.o: src/%.c $(HEADERS) config.mk Makefile
 	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c -DHEXTOGGLE_VERSION="$(VERSION)" $< -o $@
+	$(CC) -c -DHEXTOGGLE_VERSION="$(VERSION)" $< -o $@ $(CPPFLAGS) $(CFLAGS)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -Wall -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -Wall -o $@ $(LOADLIBES) $(LDLIBS)
 
 clean:
 	-rm -rf $(BUILD_DIR)
