@@ -2,13 +2,14 @@
 
 #include "utils.h"
 
-// Convert (up to) 16 bytes of binary data to 81 bytes of output.
+// Convert (up to) 16 bytes of binary data to (up to) 81 bytes
+//     of output.
 // `input` needs to point to `input_size` bytes of data (up to 16),
 // `addr` describes the overall offset in the input file, and `output`
 // needs to point to 81 bytes of writable space.
-static void bin_block_to_hex(
+static size_t bin_block_to_hex(
         const char *input,
-        uint64_t input_size,
+        size_t input_size,
         uint64_t addr,
         char *output) {
     output[0] = '[';
@@ -92,26 +93,31 @@ static void bin_block_to_hex(
     output[78] = 14 < input_size ? safe_char(input[14]) : ' ';
     output[79] = 15 < input_size ? safe_char(input[15]) : ' ';
     output[80] = '\n';
+    size_t output_size = 81;
+    if (input_size < 16) {
+        output_size -= (16 - input_size);
+        output[output_size - 1] = '\n';
+    }
+    return output_size;
 }
 
-uint64_t bin_data_to_hex(
+size_t bin_data_to_hex(
         const char *input,
-        uint64_t input_size,
+        size_t input_size,
         uint64_t addr,
         char *output) {
-    uint64_t output_size = 0;
-    uint64_t input_offset = 0;
+    size_t output_size = 0;
+    size_t input_offset = 0;
     while (input_offset < input_size) {
-        uint64_t block_size = 16;
+        size_t block_size = 16;
         if (input_size - input_offset < 16) {
             block_size = input_size - input_offset;
         }
-        bin_block_to_hex(input, block_size, addr, output);
+        output_size += bin_block_to_hex(
+            input, block_size, addr, output + output_size);
         input += 16;
         input_offset += 16;
         addr += 16;
-        output_size += 81;
-        output += 81;
     }
     return output_size;
 }

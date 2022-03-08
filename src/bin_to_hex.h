@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 
 /*
 Format:
@@ -15,11 +16,11 @@ Format:
 ///     unless near EOF)
 /// `input_size`: size of the specified input
 /// `addr`: address in overall data
-/// `output`: space we can use for output, must be equal to
+/// `output`: space we can use for output, should be equal to
 ///     81 * ceil(input_size / 16) bytes
 /// Return value: amount of data written to output
-uint64_t bin_data_to_hex(
+size_t bin_data_to_hex(
     const char *input,
-    uint64_t input_size,
+    size_t input_size,
     uint64_t addr,
     char *output);
