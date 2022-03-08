@@ -1,9 +1,13 @@
 .POSIX:
 
 CC ?= gcc
-CFLAGS += -O3 -g -Wall -std=c11
+CFLAGS += -O3 -g -Wall -std=c11 -fdebug-compilation-dir .
+LDFLAGS +=
 BUILD_DIR = build
 TARGET = ./$(BUILD_DIR)/hextoggle
+
+# set timestamps to 0 (needed for reproducible builds)
+export ZERO_AR_DATE=1
 
 include config.mk
 
