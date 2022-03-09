@@ -56,3 +56,9 @@ benchmark: build
 	time $(TARGET) "$(BUILD_DIR)/bin.txt" "$(BUILD_DIR)/hex.txt"
 	time $(TARGET) "$(BUILD_DIR)/hex.txt" "$(BUILD_DIR)/bin.txt"
 	rm "$(BUILD_DIR)/bin.txt" "$(BUILD_DIR)/hex.txt"
+
+reproduce:
+	$(MAKE) BUILD_DIR=$(BUILD_DIR)/a
+	sleep 2
+	$(MAKE) BUILD_DIR=$(BUILD_DIR)/b
+	diffoscope --exclude-directory-metadata yes $(BUILD_DIR)/a $(BUILD_DIR)/b
