@@ -20,10 +20,11 @@ int hex_char_to_int(char ch) {
         case 'd': case 'D': return 13;
         case 'e': case 'E': return 14;
         case 'f': case 'F': return 15;
-        default:
-            fprintf(stderr, "Internal error: invalid hex character `%c`\n", ch);
-            return -1;
+        default: break;
     }
+    fprintf(stderr,
+        "Internal error: invalid hex character `%c`\n", ch);
+    return -1;
 }
 
 char int_to_hex_char(int number) {
@@ -44,10 +45,12 @@ char int_to_hex_char(int number) {
         case 13: return 'd';
         case 14: return 'e';
         case 15: return 'f';
-        default:
-            fprintf(stderr, "Internal error: cannot convert `%d` to a hex digit\n", number);
-            return '\0';
+        default: break;
     }
+    fprintf(stderr,
+        "Internal error: cannot convert `%d` to a hex digit\n",
+        number);
+    return '\0';
 }
 
 char safe_char(char ch) {

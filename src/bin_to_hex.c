@@ -2,11 +2,21 @@
 
 #include "utils.h"
 
-// Convert (up to) 16 bytes of binary data to (up to) 81 bytes
-//     of output.
-// `input` needs to point to `input_size` bytes of data (up to 16),
-// `addr` describes the overall offset in the input file, and `output`
-// needs to point to 81 bytes of writable space.
+#include <stdbool.h>
+
+static char char_to_hex(char input, bool first) {
+    if (first) {
+        return int_to_hex_char((int)((input >> 4) & 0xF));
+    } else {
+        return int_to_hex_char((int)(input & 0xF));
+    }
+}
+
+/** Convert (up to) 16 bytes of binary data
+ *      to (up to) 81 bytes of output.
+ * `input` needs to point to `input_size` bytes of data (up to 16),
+ * `addr` describes the overall offset in the input file, and `output`
+ *      needs to point to 81 bytes of writable space. */
 static size_t bin_block_to_hex(
         const char *input,
         size_t input_size,
@@ -36,45 +46,45 @@ static size_t bin_block_to_hex(
     output[21] = '0' + addr / 10 % 10;
     output[22] = '0' + addr % 10;
     output[23] = ']';
-    output[24] = 0 < input_size ? int_to_hex_char((int)((input[0] >> 4) & 0xF)) : ' ';
-    output[25] = 0 < input_size ? int_to_hex_char((int)(input[0] & 0xF)) : ' ';
-    output[26] = 1 < input_size ? int_to_hex_char((int)((input[1] >> 4) & 0xF)) : ' ';
-    output[27] = 1 < input_size ? int_to_hex_char((int)(input[1] & 0xF)) : ' ';
+    output[24] = 0 < input_size ? char_to_hex(input[0], true) : ' ';
+    output[25] = 0 < input_size ? char_to_hex(input[0], false) : ' ';
+    output[26] = 1 < input_size ? char_to_hex(input[1], true) : ' ';
+    output[27] = 1 < input_size ? char_to_hex(input[1], false) : ' ';
     output[28] = ' ';
-    output[29] = 2 < input_size ? int_to_hex_char((int)((input[2] >> 4) & 0xF)) : ' ';
-    output[30] = 2 < input_size ? int_to_hex_char((int)(input[2] & 0xF)) : ' ';
-    output[31] = 3 < input_size ? int_to_hex_char((int)((input[3] >> 4) & 0xF)) : ' ';
-    output[32] = 3 < input_size ? int_to_hex_char((int)(input[3] & 0xF)) : ' ';
+    output[29] = 2 < input_size ? char_to_hex(input[2], true) : ' ';
+    output[30] = 2 < input_size ? char_to_hex(input[2], false) : ' ';
+    output[31] = 3 < input_size ? char_to_hex(input[3], true) : ' ';
+    output[32] = 3 < input_size ? char_to_hex(input[3], false) : ' ';
     output[33] = ' ';
-    output[34] = 4 < input_size ? int_to_hex_char((int)((input[4] >> 4) & 0xF)) : ' ';
-    output[35] = 4 < input_size ? int_to_hex_char((int)(input[4] & 0xF)) : ' ';
-    output[36] = 5 < input_size ? int_to_hex_char((int)((input[5] >> 4) & 0xF)) : ' ';
-    output[37] = 5 < input_size ? int_to_hex_char((int)(input[5] & 0xF)) : ' ';
+    output[34] = 4 < input_size ? char_to_hex(input[4], true) : ' ';
+    output[35] = 4 < input_size ? char_to_hex(input[4], false) : ' ';
+    output[36] = 5 < input_size ? char_to_hex(input[5], true) : ' ';
+    output[37] = 5 < input_size ? char_to_hex(input[5], false) : ' ';
     output[38] = ' ';
-    output[39] = 6 < input_size ? int_to_hex_char((int)((input[6] >> 4) & 0xF)) : ' ';
-    output[40] = 6 < input_size ? int_to_hex_char((int)(input[6] & 0xF)) : ' ';
-    output[41] = 7 < input_size ? int_to_hex_char((int)((input[7] >> 4) & 0xF)) : ' ';
-    output[42] = 7 < input_size ? int_to_hex_char((int)(input[7] & 0xF)) : ' ';
+    output[39] = 6 < input_size ? char_to_hex(input[6], true) : ' ';
+    output[40] = 6 < input_size ? char_to_hex(input[6], false) : ' ';
+    output[41] = 7 < input_size ? char_to_hex(input[7], true) : ' ';
+    output[42] = 7 < input_size ? char_to_hex(input[7], false) : ' ';
     output[43] = ' ';
-    output[44] = 8 < input_size ? int_to_hex_char((int)((input[8] >> 4) & 0xF)) : ' ';
-    output[45] = 8 < input_size ? int_to_hex_char((int)(input[8] & 0xF)) : ' ';
-    output[46] = 9 < input_size ? int_to_hex_char((int)((input[9] >> 4) & 0xF)) : ' ';
-    output[47] = 9 < input_size ? int_to_hex_char((int)(input[9] & 0xF)) : ' ';
+    output[44] = 8 < input_size ? char_to_hex(input[8], true) : ' ';
+    output[45] = 8 < input_size ? char_to_hex(input[8], false) : ' ';
+    output[46] = 9 < input_size ? char_to_hex(input[9], true) : ' ';
+    output[47] = 9 < input_size ? char_to_hex(input[9], false) : ' ';
     output[48] = ' ';
-    output[49] = 10 < input_size ? int_to_hex_char((int)((input[10] >> 4) & 0xF)) : ' ';
-    output[50] = 10 < input_size ? int_to_hex_char((int)(input[10] & 0xF)) : ' ';
-    output[51] = 11 < input_size ? int_to_hex_char((int)((input[11] >> 4) & 0xF)) : ' ';
-    output[52] = 11 < input_size ? int_to_hex_char((int)(input[11] & 0xF)) : ' ';
+    output[49] = 10 < input_size ? char_to_hex(input[10], true) : ' ';
+    output[50] = 10 < input_size ? char_to_hex(input[10], false) : ' ';
+    output[51] = 11 < input_size ? char_to_hex(input[11], true) : ' ';
+    output[52] = 11 < input_size ? char_to_hex(input[11], false) : ' ';
     output[53] = ' ';
-    output[54] = 12 < input_size ? int_to_hex_char((int)((input[12] >> 4) & 0xF)) : ' ';
-    output[55] = 12 < input_size ? int_to_hex_char((int)(input[12] & 0xF)) : ' ';
-    output[56] = 13 < input_size ? int_to_hex_char((int)((input[13] >> 4) & 0xF)) : ' ';
-    output[57] = 13 < input_size ? int_to_hex_char((int)(input[13] & 0xF)) : ' ';
+    output[54] = 12 < input_size ? char_to_hex(input[12], true) : ' ';
+    output[55] = 12 < input_size ? char_to_hex(input[12], false) : ' ';
+    output[56] = 13 < input_size ? char_to_hex(input[13], true) : ' ';
+    output[57] = 13 < input_size ? char_to_hex(input[13], false) : ' ';
     output[58] = ' ';
-    output[59] = 14 < input_size ? int_to_hex_char((int)((input[14] >> 4) & 0xF)) : ' ';
-    output[60] = 14 < input_size ? int_to_hex_char((int)(input[14] & 0xF)) : ' ';
-    output[61] = 15 < input_size ? int_to_hex_char((int)((input[15] >> 4) & 0xF)) : ' ';
-    output[62] = 15 < input_size ? int_to_hex_char((int)(input[15] & 0xF)) : ' ';
+    output[59] = 14 < input_size ? char_to_hex(input[14], true) : ' ';
+    output[60] = 14 < input_size ? char_to_hex(input[14], false) : ' ';
+    output[61] = 15 < input_size ? char_to_hex(input[15], true) : ' ';
+    output[62] = 15 < input_size ? char_to_hex(input[15], false) : ' ';
     output[63] = '|';
     output[64] = 0 < input_size ? safe_char(input[0]) : ' ';
     output[65] = 1 < input_size ? safe_char(input[1]) : ' ';

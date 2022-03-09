@@ -1,7 +1,16 @@
+/*
+    Thanks for reading this code!
+    Feel free to contribute to this project if you'd like :)
+*/
+
 /* required for Visual Studio to compile */
 #ifdef _MSC_VER
 #  define _CRT_SECURE_NO_WARNINGS
 #endif
+
+#include "bin_to_hex.h"
+#include "tempfile.h"
+#include "utils.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -11,23 +20,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bin_to_hex.h"
-#include "tempfile.h"
-#include "utils.h"
-
 static const char *header = "| hextoggle output file";
 enum { HEADER_LENGTH = 23 };
 
 #if !defined(HEXTOGGLE_VERSION)
-#error Make sure `HEXTOGGLE_VERSION` is set to the correct version number (e.g. `1.0.0`)
+/* be careful not to indent the line after the backslash */
+#error Make sure `HEXTOGGLE_VERSION` is set to the \
+correct version number (e.g. `1.0.0`)
 #endif
 #define STR_VALUE(arg) #arg
 #define STR_VALUE_2(name) STR_VALUE(name)
 #define VERSION_STR STR_VALUE_2(HEXTOGGLE_VERSION)
 
 enum StatusCode {
-    StatusCodeSuccess,
-    StatusCodeInvalidArgs,
+    StatusCodeInvalidArgs = 1,
     StatusCodeFailedToOpenFiles,
     StatusCodeFailedCleanup,
     StatusCodeInvalidInput,
@@ -43,7 +49,23 @@ typedef struct {
     const char *output_filename; /* null if we're doing a dry run */
 } ParseArgsResult;
 
-/** Validates the given command-line arguments, and prints usage description on error */
+/* main usage string, but doesn't include return codes */
+static const char *USAGE_STRING = 
+"hextoggle v" VERSION_STR "\n"
+"\n"
+"Usage: hextoggle [file]            # toggle file in-place\n"
+"       hextoggle [input] [output]  # read `input`, write to `output`\n"
+"       hextoggle -                 # read from stdin/write to stdout\n"
+"\n"
+"Flags:\n"
+"       -n  --dry-run  # discard results\n"
+"       -d  --decode   # force decode (i.e. hex -> binary)\n"
+"       -e  --encode   # force encode (i.e. binary -> hex)\n"
+"       -h  --help     # show this usage information\n"
+"\n";
+
+/** Validate the given command-line arguments,
+and print usage description on error */
 static ParseArgsResult parse_args(int argc, const char *argv[]) {
     ParseArgsResult result;
     result.exit_with_error = 0;
@@ -57,13 +79,17 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
     bool dry_run = false;
     bool valid_args = false;
     for (int i = 1; i < argc; ++i) {
-        if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
+        if (!strcmp(argv[i], "--help")
+                || !strcmp(argv[i], "-h")) {
             help_arg = true;
-        } else if (!strcmp(argv[i], "--dry-run") || !strcmp(argv[i], "-n")) {
+        } else if (!strcmp(argv[i], "--dry-run")
+                || !strcmp(argv[i], "-n")) {
             dry_run = true;
-        } else if (!strcmp(argv[i], "--decode") || !strcmp(argv[i], "-d")) {
+        } else if (!strcmp(argv[i], "--decode")
+                || !strcmp(argv[i], "-d")) {
             result.only_decode = true;
-        } else if (!strcmp(argv[i], "--encode") || !strcmp(argv[i], "-e")) {
+        } else if (!strcmp(argv[i], "--encode")
+                || !strcmp(argv[i], "-e")) {
             result.only_encode = true;
         } else {
             if (!result.input_filename) {
@@ -92,26 +118,19 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
         return result;
     }
 
-    fprintf(stderr,
-        "hextoggle v" VERSION_STR "\n"
-        "\n"
-        "Usage: hextoggle [file]            # toggle file in-place\n"
-        "       hextoggle [input] [output]  # read 'input', write to 'output'\n"
-        "       hextoggle -                 # read from stdin/write to stdout\n"
-        "\n"
-        "Flags:\n"
-        "       -n        --dry-run         # discard results\n"
-        "       -d        --decode          # force decode (i.e. hex -> binary)\n"
-        "       -e        --encode          # force encode (i.e. binary -> hex)\n"
-        "       -h        --help            # show this usage information\n"
-        "\n");
+    fprintf(stderr, "%s", USAGE_STRING);
     fprintf(stderr, "Return codes:\n");
     fprintf(stderr, "  %i   success\n", EXIT_SUCCESS);
-    fprintf(stderr, "  %i   invalid arguments\n", StatusCodeInvalidArgs);
-    fprintf(stderr, "  %i   failed to open input files\n", StatusCodeFailedToOpenFiles);
-    fprintf(stderr, "  %i   failed to clean up files\n", StatusCodeFailedCleanup);
-    fprintf(stderr, "  %i   invalid input\n", StatusCodeInvalidInput);
-    fprintf(stderr, "  %i   internal assertion failed\n", StatusCodeAssertionFailed);
+    fprintf(stderr, "  %i   invalid arguments\n",
+        StatusCodeInvalidArgs);
+    fprintf(stderr, "  %i   failed to open input files\n",
+        StatusCodeFailedToOpenFiles);
+    fprintf(stderr, "  %i   failed to clean up files\n",
+        StatusCodeFailedCleanup);
+    fprintf(stderr, "  %i   invalid input\n",
+        StatusCodeInvalidInput);
+    fprintf(stderr, "  %i   internal assertion failed\n",
+        StatusCodeAssertionFailed);
 
     if (help_arg) {
         result.exit_with_success = 1;
@@ -133,13 +152,14 @@ static int cleanup_files(FILE *input, FILE *temp_output,
     if (!real_output_filename)
         return 0;
     if (!temp_output_filename[0]) {
-        /* we wrote directly to the target file, so no need to rename things */
+        /* we wrote directly to the target file,
+            so no need to rename things */
         return 0;
     }
 #ifdef _MSC_VER
     if (-1 == remove(real_output_filename)) {
         if (errno != ENOENT) {
-            // target file does exist but we cannot delete it
+            /* target file does exist but we cannot delete it */
             fprintf(stderr, "Unable to remove file '%s': %s\n",
                 temp_output_filename, strerror(errno));
             return 1;
@@ -148,7 +168,9 @@ static int cleanup_files(FILE *input, FILE *temp_output,
 #endif
     if (-1 == rename(temp_output_filename, real_output_filename)) {
         fprintf(stderr, "Unable to rename file '%s' to '%s': %s\n",
-            temp_output_filename, real_output_filename, strerror(errno));
+            temp_output_filename,
+            real_output_filename,
+            strerror(errno));
         return 1;
     }
     return 0;
@@ -168,9 +190,12 @@ static FromHexData init_from_hex_data() {
     return result;
 }
 
-static int hex_to_chars(FromHexData *data, char c, FILE *output_stream) {
+static int hex_to_chars(
+        FromHexData *data, char c, FILE *output_stream) {
     if (data->prev_byte) {
-        if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+        if ((c >= '0' && c <= '9')
+                || (c >= 'a' && c <= 'f')
+                || (c >= 'A' && c <= 'F')) {
             int first_char = hex_char_to_int(data->prev_byte);
             if (first_char < 0) {
                 return 1;
@@ -191,9 +216,9 @@ static int hex_to_chars(FromHexData *data, char c, FILE *output_stream) {
         }
     }
 
-    /* It's important to process skipped lines BEFORE block comments because
-       otherwise '[' and ']' characters on the right-hand side can unintentionally
-       break the file. */
+    /* It's important to process skipped lines BEFORE block comments
+        because otherwise '[' and ']' characters on the right-hand side
+        can unintentionally break the file. */
     if (data->skip_line && c != '\n') {
         return 0;
     }
@@ -218,7 +243,9 @@ static int hex_to_chars(FromHexData *data, char c, FILE *output_stream) {
         return 0;
     }
 
-    if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+    if ((c >= '0' && c <= '9')
+            || (c >= 'a' && c <= 'f')
+            || (c >= 'A' && c <= 'F')) {
         data->prev_byte = c;
         return 0;
     }
@@ -229,9 +256,11 @@ static int hex_to_chars(FromHexData *data, char c, FILE *output_stream) {
 }
 
 /* Return values: 0 for success, 1 for retry as to_hex, 2 for error */
-static int try_from_hex(FILE *input_file, FILE *output_file,
-                 char *from_hex_read_buffer, size_t *from_hex_read_buffer_length,
-                 bool check_header) {
+static int try_from_hex(FILE *input_file,
+        FILE *output_file,
+        char *from_hex_read_buffer,
+        size_t *from_hex_read_buffer_length,
+        bool check_header) {
     int ci;
     unsigned long long i = 0;
     unsigned long long line_no = 1;
@@ -253,7 +282,10 @@ static int try_from_hex(FILE *input_file, FILE *output_file,
             }
         }
         if (hex_to_chars(&data, c, output_file)) {
-            fprintf(stderr, "Invalid format at character %llu, line %llu, col %llu, aborting\n", i, line_no, col_no);
+            fprintf(stderr,
+                "Error: invalid format at character %llu, line %llu, "
+                "col %llu, aborting\n",
+                i, line_no, col_no);
             return 2;
         }
         ++i;
@@ -267,14 +299,15 @@ static int try_from_hex(FILE *input_file, FILE *output_file,
 }
 
 static int try_to_hex(FILE *input_file, FILE *output_file,
-               const char *from_hex_read_buffer, size_t from_hex_read_buffer_length) {
+        const char *from_hex_read_buffer,
+        size_t from_hex_read_buffer_length) {
     if (output_file) {
         fputs(header, output_file);
         fputc('\n', output_file);
     }
     
-    // BLOCK_BATCH describes the number of blocks (sets of 16 bytes)
-    // to convert at once. Each block produces 81 bytes of output.
+    /* BLOCK_BATCH describes the number of blocks (sets of 16 bytes)
+        to convert at once. Each block produces 81 bytes of output. */
     enum { BLOCK_BATCH = 64 };
     uint64_t addr = 0;
     char output[81 * BLOCK_BATCH];
@@ -283,14 +316,16 @@ static int try_to_hex(FILE *input_file, FILE *output_file,
     /* read in chars already read in by try_from_hex */
     memcpy(input, from_hex_read_buffer, from_hex_read_buffer_length);
     
-    while (true) {
+    for (;;) {
         size_t i = from_hex_read_buffer_length
             + fread(input + from_hex_read_buffer_length,
                     1,
-                    16 * (size_t)BLOCK_BATCH - from_hex_read_buffer_length,
+                    16 * (size_t)BLOCK_BATCH
+                        - from_hex_read_buffer_length,
                     input_file);
         from_hex_read_buffer_length = 0;
-        uint64_t output_data_len = bin_data_to_hex(input, i, addr, output);
+        uint64_t output_data_len = bin_data_to_hex(
+            input, i, addr, output);
         addr += i;
         if (output_file) {
             fwrite(output, output_data_len, 1, output_file);
@@ -310,7 +345,9 @@ static int open_files(FILE **input_file, FILE **output_file,
     } else {
         *input_file = fopen(input_filename, "rb");
         if (!*input_file) {
-            fprintf(stderr, "Unable to open file '%s' for reading: %s\n", input_filename, strerror(errno));
+            fprintf(stderr,
+                "Unable to open file '%s' for reading: %s\n",
+                input_filename, strerror(errno));
             return StatusCodeFailedToOpenFiles;
         }
     }
@@ -326,7 +363,9 @@ static int open_files(FILE **input_file, FILE **output_file,
             /* otherwise open the file directly */
             *output_file = fopen(output_filename, "wb");
             if (!*output_file) {
-                fprintf(stderr, "Unable to open file '%s' for writing: %s\n", output_filename, strerror(errno));
+                fprintf(stderr,
+                    "Unable to open file '%s' for writing: %s\n",
+                    output_filename, strerror(errno));
                 if (*input_file) {
                     fclose(*input_file);
                 }
@@ -353,7 +392,8 @@ int main(int argc, const char *argv[]) {
     char output_filename_buffer[TEMP_FILENAME_SIZE];
     output_filename_buffer[0] = '\0';
     if (open_files(&input_file, &output_file,
-                   input_filename, output_filename, output_filename_buffer)) {
+            input_filename, output_filename,
+            output_filename_buffer)) {
         return StatusCodeFailedToOpenFiles;
     }
     
@@ -371,7 +411,8 @@ int main(int argc, const char *argv[]) {
         !parse_args_result.only_decode);
     switch (res) {
         case 0: /* success */
-            if (cleanup_files(input_file, output_file, output_filename_buffer, output_filename)) {
+            if (cleanup_files(input_file, output_file,
+                    output_filename_buffer, output_filename)) {
                 return StatusCodeFailedCleanup;
             }
             return EXIT_SUCCESS;
@@ -386,9 +427,11 @@ int main(int argc, const char *argv[]) {
             return StatusCodeInvalidInput;
         case 1: /* retry */
         try_encode:
-            res = try_to_hex(input_file, output_file, from_hex_read_buffer, from_hex_read_buffer_length);
+            res = try_to_hex(input_file, output_file,
+                from_hex_read_buffer, from_hex_read_buffer_length);
             if (res == 0) {
-                if (cleanup_files(input_file, output_file, output_filename_buffer, output_filename)) {
+                if (cleanup_files(input_file, output_file,
+                        output_filename_buffer, output_filename)) {
                     return StatusCodeFailedCleanup;
                 }
                 return EXIT_SUCCESS;

@@ -1,7 +1,13 @@
 .POSIX:
 
+# ?= allows overriding via environment variables
+# += adds to an environment variable if one exists
+
+# All assignments (`?=`, `+=`, or `=`) can be overridden
+#     by calling make as e.g. `make VAR=custom_value`
+
 CC ?= gcc
-CFLAGS += -O3 -g -Wall -std=c11 -fdebug-compilation-dir .
+CFLAGS += -O3 -g -Wall -std=c99 -fdebug-compilation-dir .
 LDFLAGS +=
 BUILD_DIR = build
 TARGET = ./$(BUILD_DIR)/hextoggle
@@ -9,10 +15,12 @@ TARGET = ./$(BUILD_DIR)/hextoggle
 # set timestamps to 0 (needed for reproducible builds)
 export ZERO_AR_DATE=1
 
+# include version number and prefix directory (defaults to `/usr/local`)
 include config.mk
 
 ifndef VERSION
-$(error Make sure `VERSION` is set to the correct version number, e.g. `1.0.0`)
+$(error Make sure `VERSION` is set to the \
+	correct version number, e.g. `1.0.0`)
 endif
 
 HEADERS = $(wildcard src/*.h)
@@ -28,11 +36,13 @@ all: build
 
 $(BUILD_DIR)/%.o: src/%.c $(HEADERS) config.mk Makefile
 	mkdir -p $(BUILD_DIR)
-	$(CC) -c -DHEXTOGGLE_VERSION="$(VERSION)" $< -o $@ $(CPPFLAGS) $(CFLAGS)
+	$(CC) -c -DHEXTOGGLE_VERSION="$(VERSION)" $< -o $@ \
+		$(CPPFLAGS) $(CFLAGS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -Wall -o $@ $(LOADLIBES) $(LDLIBS)
 
+# the - means that we are ignoring the return code of this command
 clean:
 	-rm -rf $(BUILD_DIR)
 
@@ -42,14 +52,15 @@ install: build
 	chmod 755 $(PREFIX)/bin/hextoggle
 
 uninstall:
-	rm -f $(PREFIX)/bin/hextoggle
+	-rm -f $(PREFIX)/bin/hextoggle
 
 test: build
 	echo test >$(BUILD_DIR)/input.txt
 	$(TARGET) $(BUILD_DIR)/input.txt $(BUILD_DIR)/hex.txt
 	$(TARGET) $(BUILD_DIR)/hex.txt $(BUILD_DIR)/output.txt
 	diff -q $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt
-	rm $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt $(BUILD_DIR)/hex.txt
+	rm $(BUILD_DIR)/input.txt $(BUILD_DIR)/output.txt \
+		$(BUILD_DIR)/hex.txt
 
 benchmark: build
 	dd if=/dev/random of="$(BUILD_DIR)/bin.txt" bs=1048576 count=64
@@ -61,4 +72,5 @@ reproduce:
 	$(MAKE) BUILD_DIR=$(BUILD_DIR)/a
 	sleep 2
 	$(MAKE) BUILD_DIR=$(BUILD_DIR)/b
-	diffoscope --exclude-directory-metadata yes $(BUILD_DIR)/a $(BUILD_DIR)/b
+	diffoscope --exclude-directory-metadata yes \
+		$(BUILD_DIR)/a $(BUILD_DIR)/b

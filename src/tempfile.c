@@ -12,7 +12,9 @@ static FILE *handle_errors(FILE *file, const char *filename);
 FILE *open_temporary_file(char *filename) {
     bool success = tmpnam_s(filename, L_tmpnam_s) == NULL;
     if (!success) {
-        fprintf(stderr, "Error: Unable to get temp file name: %s\n", strerror(errno));
+        fprintf(stderr,
+            "Error: Unable to get temp file name: %s\n",
+            strerror(errno));
         return NULL;
     }
     FILE *file = fopen(filename, "wb");
@@ -27,20 +29,24 @@ FILE *open_temporary_file(char *filename) {
     int fd = mkstemp(filename);
     bool success = fd != -1;
     if (!success) {
-        fprintf(stderr, "Error: Unable to get temp file name: %s\n", strerror(errno));
+        fprintf(stderr,
+            "Error: Unable to get temp file name: %s\n",
+            strerror(errno));
         return NULL;
     }
     FILE *file = fdopen(fd, "wb");
     return handle_errors(file, filename);
 }
 
-#endif // _MSC_VER
+#endif /* _MSC_VER */
 
 static FILE *handle_errors(FILE *file, const char *filename) {
     if (file) {
         return file;
     }
-    fprintf(stderr, "Error: Unable to open temporary file `%s` for writing: %s\n", filename, strerror(errno));
+    fprintf(stderr,
+        "Error: Unable to open temporary file `%s` for writing: %s\n",
+        filename, strerror(errno));
     remove(filename);
     return NULL;
 }
