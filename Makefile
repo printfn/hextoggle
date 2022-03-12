@@ -28,6 +28,8 @@ $(error Make sure `VERSION` is set to the \
 	correct version number, e.g. `1.0.0`)
 endif
 
+DIFF_TOOL = diffoscope --exclude-directory-metadata yes
+
 HEADERS = $(wildcard src/*.h)
 SOURCES = $(wildcard src/*.c)
 OBJECTS = $(patsubst src/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
@@ -77,8 +79,7 @@ reproduce:
 	$(MAKE) BUILD_DIR=$(BUILD_DIR)/a
 	sleep 2
 	$(MAKE) BUILD_DIR=$(BUILD_DIR)/b
-	diffoscope --exclude-directory-metadata yes \
-		$(BUILD_DIR)/a $(BUILD_DIR)/b
+	$(DIFF_TOOL) $(BUILD_DIR)/a $(BUILD_DIR)/b
 
 ci: build reproduce
 	shasum -a 256 $(TARGET) \

@@ -13,12 +13,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Install diffoscope
-      run: brew install diffoscope
       
     - name: make
-      run: make ci
+      # it takes too long to install diffoscope,
+      # so just use `diff` here
+      run: make ci DIFF_TOOL=diff
 
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
