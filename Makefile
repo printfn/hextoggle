@@ -7,13 +7,18 @@
 #     by calling make as e.g. `make VAR=custom_value`
 
 CC ?= gcc
-CFLAGS += -O3 -g -Wall -std=c99 -fdebug-compilation-dir .
+CFLAGS += -O3 -g -Wall -std=c99
 LDFLAGS +=
 BUILD_DIR = build
 TARGET = ./$(BUILD_DIR)/hextoggle
 
-# set timestamps to 0 (needed for reproducible builds)
+# REPRODUCIBLE BUILDS
+# set timestamps to 0
 export ZERO_AR_DATE=1
+# remove compilation dir from binary
+CFLAGS += -fdebug-compilation-dir .
+# remove build dir from binary (see `man ld` on macOS)
+LDFLAGS += -Wl,-oso_prefix,$(realpath $(BUILD_DIR))
 
 # include version number and prefix directory (defaults to `/usr/local`)
 include config.mk
