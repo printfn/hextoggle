@@ -40,11 +40,16 @@ enum StatusCode {
     StatusCodeAssertionFailed,
 };
 
+typedef enum Conversion {
+    ConversionAutoDetect,
+    ConversionOnlyDecode,
+    ConversionOnlyEncode,
+} Conversion;
+
 typedef struct {
     int exit_with_error;   /* if non-zero, exit with that error code */
     int exit_with_success; /* if non-zero, exit successfully */
-    int only_decode;
-    int only_encode;
+    Conversion conversion;
     const char *input_filename;
     const char *output_filename; /* null if we're doing a dry run */
 } ParseArgsResult;
@@ -70,8 +75,7 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
     ParseArgsResult result;
     result.exit_with_error = 0;
     result.exit_with_success = 0;
-    result.only_decode = 0;
-    result.only_encode = 0;
+    result.conversion = ConversionAutoDetect;
     result.input_filename = NULL;
     result.output_filename = NULL;
 
@@ -87,10 +91,10 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
             dry_run = true;
         } else if (!strcmp(argv[i], "--decode")
                 || !strcmp(argv[i], "-d")) {
-            result.only_decode = true;
+            result.conversion = ConversionOnlyDecode;
         } else if (!strcmp(argv[i], "--encode")
                 || !strcmp(argv[i], "-e")) {
-            result.only_encode = true;
+            result.conversion = ConversionOnlyEncode;
         } else {
             if (!result.input_filename) {
                 result.input_filename = argv[i];
@@ -108,10 +112,6 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
         result.output_filename = result.input_filename;
     } else if (dry_run) {
         result.output_filename = NULL;
-    }
-
-    if (result.only_decode && result.only_encode) {
-        valid_args = false;
     }
 
     if (valid_args && !help_arg) {
@@ -401,14 +401,14 @@ int main(int argc, const char *argv[]) {
     size_t from_hex_read_buffer_length = 0;
     char from_hex_read_buffer[HEADER_LENGTH] = {0};
 
-    if (parse_args_result.only_encode) {
+    if (parse_args_result.conversion == ConversionOnlyEncode) {
         goto try_encode;
     }
     
     int res = try_from_hex(
         input_file, output_file,
         from_hex_read_buffer, &from_hex_read_buffer_length,
-        !parse_args_result.only_decode);
+        parse_args_result.conversion == ConversionAutoDetect);
     switch (res) {
         case 0: /* success */
             if (cleanup_files(input_file, output_file,
