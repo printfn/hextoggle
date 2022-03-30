@@ -62,7 +62,7 @@ static const char *USAGE_STRING =
 "       hextoggle [input] [output]  # read `input`, write to `output`\n"
 "       hextoggle -                 # read from stdin/write to stdout\n"
 "\n"
-"Flags:\n"
+"Options:\n"
 "       -n  --dry-run  # discard results\n"
 "       -d  --decode   # force decode (i.e. hex -> binary)\n"
 "       -e  --encode   # force encode (i.e. binary -> hex)\n"
@@ -82,8 +82,19 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
     bool help_arg = false;
     bool dry_run = false;
     bool valid_args = false;
+    bool raw_args = false;
     for (int i = 1; i < argc; ++i) {
-        if (!strcmp(argv[i], "--help")
+        if (raw_args || strncmp("-", argv[i], 1)) {
+            if (!result.input_filename) {
+                result.input_filename = argv[i];
+                valid_args = true;
+            } else if (!result.output_filename) {
+                result.output_filename = argv[i];
+            } else {
+                /* too many args */
+                valid_args = false;
+            }
+        } else if (!strcmp(argv[i], "--help")
                 || !strcmp(argv[i], "-h")) {
             help_arg = true;
         } else if (!strcmp(argv[i], "--dry-run")
@@ -95,16 +106,11 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
         } else if (!strcmp(argv[i], "--encode")
                 || !strcmp(argv[i], "-e")) {
             result.conversion = ConversionOnlyEncode;
+        } else if (!strcmp(argv[i], "--")) {
+            raw_args = true;
         } else {
-            if (!result.input_filename) {
-                result.input_filename = argv[i];
-                valid_args = true;
-            } else if (!result.output_filename) {
-                result.output_filename = argv[i];
-            } else {
-                /* too many args */
-                valid_args = false;
-            }
+            /* unknown argument */
+            valid_args = false;
         }
     }
 
