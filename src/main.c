@@ -166,14 +166,14 @@ static int cleanup_files(FILE *input, FILE *temp_output,
     if (-1 == remove(real_output_filename)) {
         if (errno != ENOENT) {
             /* target file does exist but we cannot delete it */
-            fprintf(stderr, "Unable to remove file '%s': %s\n",
+            fprintf(stderr, "Unable to remove file `%s`: %s\n",
                 temp_output_filename, strerror(errno));
             return 1;
         }
     }
 #endif
     if (-1 == rename(temp_output_filename, real_output_filename)) {
-        fprintf(stderr, "Unable to rename file '%s' to '%s': %s\n",
+        fprintf(stderr, "Unable to rename file `%s` to `%s`: %s\n",
             temp_output_filename,
             real_output_filename,
             strerror(errno));
@@ -352,7 +352,7 @@ static int open_files(FILE **input_file, FILE **output_file,
         *input_file = fopen(input_filename, "rb");
         if (!*input_file) {
             fprintf(stderr,
-                "Unable to open file '%s' for reading: %s\n",
+                "Unable to open file `%s` for reading: %s\n",
                 input_filename, strerror(errno));
             return StatusCodeFailedToOpenFiles;
         }
@@ -370,7 +370,7 @@ static int open_files(FILE **input_file, FILE **output_file,
             *output_file = fopen(output_filename, "wb");
             if (!*output_file) {
                 fprintf(stderr,
-                    "Unable to open file '%s' for writing: %s\n",
+                    "Unable to open file `%s` for writing: %s\n",
                     output_filename, strerror(errno));
                 if (*input_file) {
                     fclose(*input_file);
