@@ -26,8 +26,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: make
-      # it takes too long to install diffoscope,
-      # so just use `diff` here
       run: make build
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
