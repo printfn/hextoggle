@@ -10,6 +10,10 @@ Format:
 057 6f72 6c64 210a 0a23|Hello, World!..#\n
 4         5         6         7         8
 01234567890123456789012345678901234567890
+
+The hex address is 10 characters long and wraps at 16^10 bytes (1 TiB).
+The decimal address is 11 characters long and wraps at 10^11 bytes
+    (100 GB, or approx. 93 GiB).
 */
 
 /**
