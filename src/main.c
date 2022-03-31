@@ -298,23 +298,22 @@ static int open_files(FILE **input_file, FILE **output_file,
 }
 
 int main(int argc, const char *argv[]) {
-    Args parse_args_result;
+    Args args;
     FILE *input_file, *output_file;
     char output_filename_buffer[TEMP_FILENAME_SIZE];
     size_t from_hex_read_buffer_length;
     char from_hex_read_buffer[HEADER_LENGTH];
-    int res;
 
-    parse_args_result = parse_args(argc, argv);
-    if (parse_args_result.exit_with_error) {
-        return parse_args_result.exit_with_error;
-    } else if (parse_args_result.exit_with_success) {
+    args = parse_args(argc, argv);
+    if (args.exit_with_error) {
+        return args.exit_with_error;
+    } else if (args.exit_with_success) {
         return EXIT_SUCCESS;
     }
 
     output_filename_buffer[0] = '\0';
     if (open_files(&input_file, &output_file,
-            parse_args_result,
+            args,
             output_filename_buffer)) {
         return StatusCodeFailedToOpenFiles;
     }
@@ -323,51 +322,47 @@ int main(int argc, const char *argv[]) {
     from_hex_read_buffer_length = 0;
     memset(from_hex_read_buffer, 0, HEADER_LENGTH);
 
-    if (parse_args_result.conversion == ConversionOnlyEncode) {
-        goto try_encode;
+    if (args.conversion == ConversionOnlyDecode
+            || args.conversion == ConversionAutoDetect) {
+        switch (try_from_hex(
+            input_file, output_file,
+            from_hex_read_buffer, &from_hex_read_buffer_length,
+            args.conversion == ConversionAutoDetect)) {
+
+            case 0: /* success */
+                goto success_cleanup;
+
+            case 2: /* failure */
+                goto failure_cleanup;
+
+            case 1: /* failed, try encoding instead */
+                break;
+        }
     }
-    
-    res = try_from_hex(
-        input_file, output_file,
-        from_hex_read_buffer, &from_hex_read_buffer_length,
-        parse_args_result.conversion == ConversionAutoDetect);
-    switch (res) {
-        case 0: /* success */
-            if (cleanup_files(input_file, output_file,
-                    output_filename_buffer,
-                    parse_args_result)) {
-                return StatusCodeFailedCleanup;
-            }
-            return EXIT_SUCCESS;
-        case 2: /* failure */
-            fclose(input_file);
-            if (output_file) {
-                fclose(output_file);
-                if (output_filename_buffer[0]) {
-                    remove(output_filename_buffer);
-                }
-            }
-            return StatusCodeInvalidInput;
-        case 1: /* retry */
-        try_encode:
-            res = try_to_hex(input_file, output_file,
-                from_hex_read_buffer, from_hex_read_buffer_length);
-            if (res == 0) {
-                if (cleanup_files(input_file, output_file,
-                        output_filename_buffer,
-                        parse_args_result)) {
-                    return StatusCodeFailedCleanup;
-                }
-                return EXIT_SUCCESS;
-            }
-            fclose(input_file);
-            if (output_file) {
-                fclose(output_file);
-                if (output_filename_buffer[0]) {
-                    remove(output_filename_buffer);
-                }
-            }
-            return StatusCodeInvalidInput;
+
+    if (try_to_hex(input_file, output_file,
+                from_hex_read_buffer, from_hex_read_buffer_length)) {
+        /* on error: */
+        goto failure_cleanup;
     }
-    return StatusCodeAssertionFailed;
+
+    /* continue through to success cleanup */
+
+success_cleanup:
+    if (cleanup_files(input_file, output_file,
+            output_filename_buffer,
+            args)) {
+        return StatusCodeFailedCleanup;
+    }
+    return EXIT_SUCCESS;
+
+failure_cleanup:
+    fclose(input_file);
+    if (output_file) {
+        fclose(output_file);
+        if (output_filename_buffer[0]) {
+            remove(output_filename_buffer);
+        }
+    }
+    return StatusCodeInvalidInput;
 }
