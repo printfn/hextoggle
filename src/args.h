@@ -1,3 +1,5 @@
+#include "utils.h"
+
 typedef enum Conversion {
     ConversionAutoDetect,
     ConversionOnlyDecode,
@@ -20,6 +22,7 @@ typedef enum OutputKind {
 typedef struct {
     int exit_with_error;   /* if non-zero, exit with that error code */
     int exit_with_success; /* if non-zero, exit successfully */
+    BOOL verbose;
     Conversion conversion;
     InputKind input_kind; /* opening a file vs. reading from stdin */
     const char *input_filename;

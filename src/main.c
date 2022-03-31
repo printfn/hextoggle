@@ -11,7 +11,6 @@
 #include "args.h"
 #include "bin_to_hex.h"
 #include "tempfile.h"
-#include "utils.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -48,6 +47,10 @@ static int cleanup_files(FILE *input, FILE *temp_output,
         }
     }
 #endif
+    if (args.verbose) {
+        fprintf(stderr, "Moving file `%s` to `%s`\n",
+            temp_output_filename, args.output_filename);
+    }
     if (-1 == rename(temp_output_filename, args.output_filename)) {
         fprintf(stderr, "Unable to rename file `%s` to `%s`: %s\n",
             temp_output_filename,
@@ -230,6 +233,9 @@ static int open_files(FILE **input_file, FILE **output_file,
                Args args, char *output_filename_buffer) {
     if (args.input_kind == InputKindStdio) {
         *input_file = stdin;
+        if (args.verbose) {
+            fprintf(stderr, "Reading from stdin\n");
+        }
     } else if (args.input_kind == InputKindFileName) {
         *input_file = fopen(args.input_filename, "rb");
         if (!*input_file) {
@@ -237,6 +243,10 @@ static int open_files(FILE **input_file, FILE **output_file,
                 "Unable to open file `%s` for reading: %s\n",
                 args.input_filename, strerror(errno));
             return StatusCodeFailedToOpenFiles;
+        }
+        if (args.verbose) {
+            fprintf(stderr, "Reading from input file `%s`\n",
+                args.input_filename);
         }
     } else {
         /* should be unreachable */
@@ -246,11 +256,18 @@ static int open_files(FILE **input_file, FILE **output_file,
     *output_file = NULL;
     if (args.output_kind == OutputKindStdio) {
         *output_file = stdout;
+        if (args.verbose) {
+            fprintf(stderr, "Writing to stdout\n");
+        }
     } else if (args.output_kind == OutputKindFileName) {
         if (args.input_kind == InputKindFileName
                 && !strcmp(args.output_filename, args.input_filename)) {
             /* if the filenames are the same we need a temp file */
             *output_file = open_temporary_file(output_filename_buffer);
+            if (args.verbose) {
+                fprintf(stderr, "Writing to temporary file `%s`\n",
+                    output_filename_buffer);
+            }
         } else {
             /* otherwise open the file directly */
             *output_file = fopen(args.output_filename, "wb");
@@ -263,6 +280,16 @@ static int open_files(FILE **input_file, FILE **output_file,
                 }
                 return StatusCodeFailedToOpenFiles;
             }
+            if (args.verbose) {
+                fprintf(stderr,
+                    "Writing to directly to output file `%s`\n",
+                    args.output_filename);
+            }
+        }
+    } else if (args.output_kind == OutputKindNone) {
+        if (args.verbose) {
+            fprintf(stderr,
+                "Dry run: not writing to any output file\n");
         }
     }
 

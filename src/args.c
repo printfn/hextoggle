@@ -1,7 +1,5 @@
 #include "args.h"
 
-#include "utils.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,10 +22,11 @@ static const char *USAGE_STRING =
 "       hextoggle -                 # read from stdin/write to stdout\n"
 "\n"
 "Options:\n"
-"       -n  --dry-run  # discard results\n"
 "       -d  --decode   # force decode (i.e. hex -> binary)\n"
 "       -e  --encode   # force encode (i.e. binary -> hex)\n"
 "       -h  --help     # show this usage information\n"
+"       -n  --dry-run  # discard results\n"
+"       -v  --verbose  # enable verbose output\n"
 "\n";
 
 Args parse_args(int argc, const char *argv[]) {
@@ -43,6 +42,7 @@ Args parse_args(int argc, const char *argv[]) {
 
     result.exit_with_error = 0;
     result.exit_with_success = 0;
+    result.verbose = FALSE;
     result.conversion = ConversionAutoDetect;
     result.input_kind = InputKindStdio;
     result.input_filename = NULL;
@@ -83,6 +83,9 @@ Args parse_args(int argc, const char *argv[]) {
         } else if (!strcmp(argv[i], "--encode")
                 || !strcmp(argv[i], "-e")) {
             result.conversion = ConversionOnlyEncode;
+        } else if (!strcmp(argv[i], "--verbose")
+                || !strcmp(argv[i], "-v")) {
+            result.verbose = TRUE;
         } else if (!strcmp(argv[i], "-")) {
             if (main_arg_step == MainArgStepInputFile) {
                 result.input_kind = InputKindStdio;
