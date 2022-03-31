@@ -8,6 +8,7 @@
 #  define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#include "args.h"
 #include "bin_to_hex.h"
 #include "tempfile.h"
 #include "utils.h"
@@ -21,180 +22,9 @@
 static const char *header = "| hextoggle output file";
 enum { HEADER_LENGTH = 23 };
 
-#if !defined(HEXTOGGLE_VERSION)
-/* be careful not to indent the line after the backslash */
-#error Make sure `HEXTOGGLE_VERSION` is set to the \
-correct version number (e.g. `1.0.0`)
-#endif
-#define STR_VALUE(arg) #arg
-#define STR_VALUE_2(name) STR_VALUE(name)
-#define VERSION_STR STR_VALUE_2(HEXTOGGLE_VERSION)
-
-enum StatusCode {
-    StatusCodeInvalidArgs = 1,
-    StatusCodeFailedToOpenFiles,
-    StatusCodeFailedCleanup,
-    StatusCodeInvalidInput,
-    StatusCodeAssertionFailed
-};
-
-typedef enum Conversion {
-    ConversionAutoDetect,
-    ConversionOnlyDecode,
-    ConversionOnlyEncode
-} Conversion;
-
-/* describes whether we are using a file (with a filename) or using
-stdin/stdout */
-typedef enum InputKind {
-    InputKindFileName,
-    InputKindStdio
-} InputKind;
-
-typedef enum OutputKind {
-    OutputKindFileName,
-    OutputKindStdio,
-    OutputKindNone /* used for --dry-run */
-} OutputKind;
-
-typedef struct {
-    int exit_with_error;   /* if non-zero, exit with that error code */
-    int exit_with_success; /* if non-zero, exit successfully */
-    Conversion conversion;
-    InputKind input_kind; /* opening a file vs. reading from stdin */
-    const char *input_filename;
-    OutputKind output_kind;
-    const char *output_filename; /* null if we're doing a dry run */
-} ParseArgsResult;
-
-/* main usage string, but doesn't include return codes */
-static const char *USAGE_STRING = 
-"hextoggle v" VERSION_STR "\n"
-"\n"
-"Usage: hextoggle [file]            # toggle file in-place\n"
-"       hextoggle [input] [output]  # read `input`, write to `output`\n"
-"       hextoggle -                 # read from stdin/write to stdout\n"
-"\n"
-"Options:\n"
-"       -n  --dry-run  # discard results\n"
-"       -d  --decode   # force decode (i.e. hex -> binary)\n"
-"       -e  --encode   # force encode (i.e. binary -> hex)\n"
-"       -h  --help     # show this usage information\n"
-"\n";
-
-/** Validate the given command-line arguments,
-and print usage description on error */
-static ParseArgsResult parse_args(int argc, const char *argv[]) {
-    ParseArgsResult result;
-    BOOL help_arg, dry_run, valid_args, raw_args;
-    int i;
-
-    enum {
-        MainArgStepInputFile = 0,
-        MainArgStepOutputFile = 1,
-        MainArgStepDone = 2
-    } main_arg_step = MainArgStepInputFile;
-
-    result.exit_with_error = 0;
-    result.exit_with_success = 0;
-    result.conversion = ConversionAutoDetect;
-    result.input_kind = InputKindStdio;
-    result.input_filename = NULL;
-    result.output_kind = OutputKindStdio;
-    result.output_filename = NULL;
-
-    help_arg = FALSE;
-    dry_run = FALSE;
-    valid_args = TRUE;
-    raw_args = FALSE;
-    for (i = 1; i < argc; ++i) {
-        if (!valid_args) {
-            continue;
-        } else if (raw_args || strncmp("-", argv[i], 1)) {
-            if (main_arg_step == MainArgStepInputFile) {
-                result.input_filename = argv[i];
-                result.input_kind = InputKindFileName;
-                result.output_filename = argv[i];
-                result.output_kind = OutputKindFileName;
-                main_arg_step = MainArgStepOutputFile;
-            } else if (main_arg_step == MainArgStepOutputFile) {
-                result.output_filename = argv[i];
-                result.output_kind = OutputKindFileName;
-                main_arg_step = MainArgStepDone;
-            } else {
-                /* too many args */
-                valid_args = FALSE;
-            }
-        } else if (!strcmp(argv[i], "--help")
-                || !strcmp(argv[i], "-h")) {
-            help_arg = TRUE;
-        } else if (!strcmp(argv[i], "--dry-run")
-                || !strcmp(argv[i], "-n")) {
-            dry_run = TRUE;
-        } else if (!strcmp(argv[i], "--decode")
-                || !strcmp(argv[i], "-d")) {
-            result.conversion = ConversionOnlyDecode;
-        } else if (!strcmp(argv[i], "--encode")
-                || !strcmp(argv[i], "-e")) {
-            result.conversion = ConversionOnlyEncode;
-        } else if (!strcmp(argv[i], "-")) {
-            if (main_arg_step == MainArgStepInputFile) {
-                result.input_kind = InputKindStdio;
-                result.output_kind = OutputKindStdio;
-                main_arg_step = MainArgStepOutputFile;
-            } else if (main_arg_step == MainArgStepOutputFile) {
-                result.output_kind = OutputKindStdio;
-                main_arg_step = MainArgStepDone;
-            } else {
-                /* too many args */
-                valid_args = FALSE;
-            }
-        } else if (!strcmp(argv[i], "--")) {
-            raw_args = TRUE;
-        } else {
-            /* unknown argument */
-            valid_args = FALSE;
-        }
-    }
-
-    if (main_arg_step == MainArgStepInputFile
-            && result.conversion == ConversionAutoDetect) {
-        valid_args = FALSE;
-    }
-
-    if (dry_run) {
-        result.output_kind = OutputKindNone;
-    }
-
-    if (valid_args && !help_arg) {
-        return result;
-    }
-
-    fprintf(stderr, "%s", USAGE_STRING);
-    fprintf(stderr, "Return codes:\n");
-    fprintf(stderr, "  %i   success\n", EXIT_SUCCESS);
-    fprintf(stderr, "  %i   invalid arguments\n",
-        StatusCodeInvalidArgs);
-    fprintf(stderr, "  %i   failed to open input files\n",
-        StatusCodeFailedToOpenFiles);
-    fprintf(stderr, "  %i   failed to clean up files\n",
-        StatusCodeFailedCleanup);
-    fprintf(stderr, "  %i   invalid input\n",
-        StatusCodeInvalidInput);
-    fprintf(stderr, "  %i   internal assertion failed\n",
-        StatusCodeAssertionFailed);
-
-    if (help_arg) {
-        result.exit_with_success = 1;
-    } else {
-        result.exit_with_error = StatusCodeInvalidArgs;
-    }
-    return result;
-}
-
 static int cleanup_files(FILE *input, FILE *temp_output,
                   const char *temp_output_filename,
-                  ParseArgsResult args) {
+                  Args args) {
     if (args.output_kind == OutputKindFileName && temp_output) {
         fclose(temp_output);
     }
@@ -397,7 +227,7 @@ static int try_to_hex(FILE *input_file, FILE *output_file,
 }
 
 static int open_files(FILE **input_file, FILE **output_file,
-               ParseArgsResult args, char *output_filename_buffer) {
+               Args args, char *output_filename_buffer) {
     if (args.input_kind == InputKindStdio) {
         *input_file = stdin;
     } else if (args.input_kind == InputKindFileName) {
@@ -440,7 +270,7 @@ static int open_files(FILE **input_file, FILE **output_file,
 }
 
 int main(int argc, const char *argv[]) {
-    ParseArgsResult parse_args_result;
+    Args parse_args_result;
     FILE *input_file, *output_file;
     char output_filename_buffer[TEMP_FILENAME_SIZE];
     size_t from_hex_read_buffer_length;

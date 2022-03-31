@@ -15,3 +15,11 @@ typedef enum {
     FALSE = 0,
     TRUE = 1
 } BOOL;
+
+enum StatusCode {
+    StatusCodeInvalidArgs = 1,
+    StatusCodeFailedToOpenFiles,
+    StatusCodeFailedCleanup,
+    StatusCodeInvalidInput,
+    StatusCodeAssertionFailed
+};
