@@ -11,6 +11,7 @@
 #include "args.h"
 #include "bin_to_hex.h"
 #include "tempfile.h"
+#include "utils.h"
 
 #include <ctype.h>
 #include <errno.h>

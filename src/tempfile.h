@@ -1,3 +1,6 @@
+#ifndef TEMPFILE_H
+#define TEMPFILE_H
+
 /* create and delete temporary files */
 
 #include <stdio.h>
@@ -15,3 +18,5 @@ Create and open a new temporary file.
 @return a handle to the open file. The temporary file's name will
     be stored in the given buffer. Returns NULL on error. */
 FILE *open_temporary_file(char *filename);
+
+#endif /* TEMPFILE_H */

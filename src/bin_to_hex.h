@@ -1,3 +1,6 @@
+#ifndef BIN_TO_HEX_H
+#define BIN_TO_HEX_H
+
 #include <stdlib.h>
 
 /*
@@ -32,3 +35,5 @@ size_t bin_data_to_hex(
     size_t input_size,
     unsigned long long addr,
     char *output);
+
+#endif /* BIN_TO_HEX_H */

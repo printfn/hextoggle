@@ -1,3 +1,6 @@
+#ifndef ARGS_H
+#define ARGS_H
+
 #include "utils.h"
 
 typedef enum Conversion {
@@ -33,3 +36,5 @@ typedef struct {
 /** Validate the given command-line arguments,
 and print usage description on error */
 Args parse_args(int argc, const char *argv[]);
+
+#endif /* ARGS_H */
