@@ -7,20 +7,30 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
+  build_macos:
     runs-on: macos-latest
-
     steps:
     - uses: actions/checkout@v2
-      
     - name: make
       # it takes too long to install diffoscope,
       # so just use `diff` here
       run: make ci DIFF_TOOL=diff REPRODUCIBLE=1
-
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
       with:
-        name: hextoggle-macos-x64
+        name: hextoggle-x86_64-apple-darwin
+        path: build/hextoggle
+
+  build_ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: make
+      # it takes too long to install diffoscope,
+      # so just use `diff` here
+      run: make build
+    - name: Upload
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: hextoggle-x86_64-unknown-linux-gnu
         path: build/hextoggle
