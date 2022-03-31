@@ -6,28 +6,44 @@
 # All assignments (`?=`, `+=`, or `=`) can be overridden
 #     by calling make as e.g. `make VAR=custom_value`
 
-CC ?= gcc
-CFLAGS += -O3 -g -Wall -std=c99
-LDFLAGS +=
-BUILD_DIR = build
-TARGET = ./$(BUILD_DIR)/hextoggle
-
-# Reproducible builds (experimental, macOS-only)
-ifdef REPRODUCIBLE
-# set timestamps to 0
-export ZERO_AR_DATE=1
-# remove compilation dir from binary
-CFLAGS += -fdebug-compilation-dir .
-# remove build dir from binary (see `man ld` on macOS)
-LDFLAGS += -Wl,-oso_prefix,$(realpath $(BUILD_DIR))
-endif
-
 # include version number and prefix directory (defaults to `/usr/local`)
 include config.mk
 
 ifndef VERSION
 $(error Make sure `VERSION` is set to the \
 	correct version number, e.g. `1.0.0`)
+endif
+
+CC ?= gcc
+CFLAGS += -O3 -g -Wall -std=c99
+LDFLAGS +=
+BUILD_DIR = build
+TARGET = ./$(BUILD_DIR)/hextoggle
+
+# REPRODUCIBLE BUILDS
+# set timestamps to 0 (used by libtool and ld64 on macOS)
+export ZERO_AR_DATE=1
+
+# remove compilation dir from binary
+is_fdebug_compilation_dir_supported=$(shell \
+	touch foo.c && \
+	$(CC) -fdebug-compilation-dir . -c foo.c -o foo.o >/dev/null 2>/dev/null && \
+	echo 'yes'; \
+	rm -f foo.c foo.o)
+$(info is_fdebug_compilation_dir_supported=$(is_fdebug_compilation_dir_supported))
+ifeq ($(is_fdebug_compilation_dir_supported), yes)
+	CFLAGS += -fdebug-compilation-dir .
+endif
+
+# remove build dir from binary (see `man ld` on macOS)
+is_oso_prefix_supported=$(shell \
+	echo "int main() { return 0; }" >foo.c && \
+	$(CC) -Wl,-oso_prefix,$(realpath .) foo.c -o foo >/dev/null 2>/dev/null && \
+	echo 'yes'; \
+	rm -f foo.c foo)
+$(info is_oso_prefix_supported=$(is_oso_prefix_supported))
+ifeq ($(is_oso_prefix_supported), yes)
+	LDFLAGS += -Wl,-oso_prefix,$(realpath $(BUILD_DIR))
 endif
 
 DIFF_TOOL = diffoscope --exclude-directory-metadata yes

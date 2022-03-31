@@ -14,7 +14,7 @@ jobs:
     - name: make
       # it takes too long to install diffoscope,
       # so just use `diff` here
-      run: make ci DIFF_TOOL=diff REPRODUCIBLE=1
+      run: make ci DIFF_TOOL=diff
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
       with:
@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: make
-      run: make build
+      run: make ci DIFF_TOOL=diff
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
       with:
