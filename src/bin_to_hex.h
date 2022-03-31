@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <stdlib.h>
 
 /*
@@ -31,5 +30,5 @@ The decimal address is 11 characters long and wraps at 10^11 bytes
 size_t bin_data_to_hex(
     const char *input,
     size_t input_size,
-    uint64_t addr,
+    unsigned long long addr,
     char *output);

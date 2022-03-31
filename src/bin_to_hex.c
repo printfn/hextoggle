@@ -18,7 +18,7 @@ static char char_to_hex(char input, BOOL first) {
 static size_t bin_block_to_hex(
         const char *input,
         size_t input_size,
-        uint64_t addr,
+        unsigned long long addr,
         char *output) {
     size_t output_size = 81;
     output[0] = '[';
@@ -112,7 +112,7 @@ static size_t bin_block_to_hex(
 size_t bin_data_to_hex(
         const char *input,
         size_t input_size,
-        uint64_t addr,
+        unsigned long long addr,
         char *output) {
     size_t output_size = 0;
     size_t input_offset = 0;

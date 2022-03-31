@@ -14,7 +14,6 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -357,7 +356,7 @@ static int try_from_hex(FILE *input_file,
 static int try_to_hex(FILE *input_file, FILE *output_file,
         const char *from_hex_read_buffer,
         size_t from_hex_read_buffer_length) {
-    uint64_t addr, output_data_len;
+    unsigned long long addr, output_data_len;
     size_t i;
 
     /* BLOCK_BATCH describes the number of blocks (sets of 16 bytes)
