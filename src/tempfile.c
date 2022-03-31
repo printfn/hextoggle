@@ -1,9 +1,12 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "tempfile.h"
 
 #include "utils.h"
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static FILE *handle_errors(FILE *file, const char *filename);
