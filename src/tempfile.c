@@ -1,7 +1,8 @@
 #include "tempfile.h"
 
+#include "utils.h"
+
 #include <errno.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -10,14 +11,17 @@ static FILE *handle_errors(FILE *file, const char *filename);
 #ifdef _MSC_VER
 
 FILE *open_temporary_file(char *filename) {
-    bool success = tmpnam_s(filename, L_tmpnam_s) == NULL;
+    BOOL success;
+    FILE *file;
+
+    success = tmpnam_s(filename, L_tmpnam_s) == NULL;
     if (!success) {
         fprintf(stderr,
             "Error: Unable to get temp file name: %s\n",
             strerror(errno));
         return NULL;
     }
-    FILE *file = fopen(filename, "wb");
+    file = fopen(filename, "wb");
     return handle_errors(file, filename);
 }
 
@@ -25,16 +29,20 @@ FILE *open_temporary_file(char *filename) {
 
 #include <unistd.h>
 FILE *open_temporary_file(char *filename) {
+    int fd;
+    BOOL success;
+    FILE *file;
+
     strcpy(filename, ".temp_hextoggle_XXXXXXXX");
-    int fd = mkstemp(filename);
-    bool success = fd != -1;
+    fd = mkstemp(filename);
+    success = fd != -1;
     if (!success) {
         fprintf(stderr,
             "Error: Unable to get temp file name: %s\n",
             strerror(errno));
         return NULL;
     }
-    FILE *file = fdopen(fd, "wb");
+    file = fdopen(fd, "wb");
     return handle_errors(file, filename);
 }
 

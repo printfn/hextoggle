@@ -9,3 +9,9 @@ char int_to_hex_char(int number);
 /* Returns a 'safe' version of the given character.
 All control/formatting characters will be replaced with '.' */
 char safe_char(char ch);
+
+/* Custom bool type */
+typedef enum {
+    FALSE = 0,
+    TRUE = 1
+} BOOL;

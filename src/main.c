@@ -14,7 +14,6 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,13 +36,13 @@ enum StatusCode {
     StatusCodeFailedToOpenFiles,
     StatusCodeFailedCleanup,
     StatusCodeInvalidInput,
-    StatusCodeAssertionFailed,
+    StatusCodeAssertionFailed
 };
 
 typedef enum Conversion {
     ConversionAutoDetect,
     ConversionOnlyDecode,
-    ConversionOnlyEncode,
+    ConversionOnlyEncode
 } Conversion;
 
 typedef struct {
@@ -79,27 +78,27 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
     result.input_filename = NULL;
     result.output_filename = NULL;
 
-    bool help_arg = false;
-    bool dry_run = false;
-    bool valid_args = false;
-    bool raw_args = false;
+    BOOL help_arg = FALSE;
+    BOOL dry_run = FALSE;
+    BOOL valid_args = FALSE;
+    BOOL raw_args = FALSE;
     for (int i = 1; i < argc; ++i) {
         if (raw_args || strncmp("-", argv[i], 1)) {
             if (!result.input_filename) {
                 result.input_filename = argv[i];
-                valid_args = true;
+                valid_args = TRUE;
             } else if (!result.output_filename) {
                 result.output_filename = argv[i];
             } else {
                 /* too many args */
-                valid_args = false;
+                valid_args = FALSE;
             }
         } else if (!strcmp(argv[i], "--help")
                 || !strcmp(argv[i], "-h")) {
-            help_arg = true;
+            help_arg = TRUE;
         } else if (!strcmp(argv[i], "--dry-run")
                 || !strcmp(argv[i], "-n")) {
-            dry_run = true;
+            dry_run = TRUE;
         } else if (!strcmp(argv[i], "--decode")
                 || !strcmp(argv[i], "-d")) {
             result.conversion = ConversionOnlyDecode;
@@ -107,10 +106,10 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
                 || !strcmp(argv[i], "-e")) {
             result.conversion = ConversionOnlyEncode;
         } else if (!strcmp(argv[i], "--")) {
-            raw_args = true;
+            raw_args = TRUE;
         } else {
             /* unknown argument */
-            valid_args = false;
+            valid_args = FALSE;
         }
     }
 
@@ -184,14 +183,14 @@ static int cleanup_files(FILE *input, FILE *temp_output,
 
 typedef struct {
     int inside_comment; /* potentially nested comments */
-    bool skip_line;
+    BOOL skip_line;
     char prev_byte;
 } FromHexData;
 
 static FromHexData init_from_hex_data() {
     FromHexData result;
     result.prev_byte = 0;
-    result.skip_line = false;
+    result.skip_line = FALSE;
     result.inside_comment = 0;
     return result;
 }
@@ -229,11 +228,11 @@ static int hex_to_chars(
         return 0;
     }
     if (c == '\n') {
-        data->skip_line = false;
+        data->skip_line = FALSE;
         return 0;
     }
     if (c == '|') {
-        data->skip_line = true;
+        data->skip_line = TRUE;
         return 0;
     }
 
@@ -266,7 +265,7 @@ static int try_from_hex(FILE *input_file,
         FILE *output_file,
         char *from_hex_read_buffer,
         size_t *from_hex_read_buffer_length,
-        bool check_header) {
+        BOOL check_header) {
     int ci;
     unsigned long long i = 0;
     unsigned long long line_no = 1;
