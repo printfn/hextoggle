@@ -45,11 +45,26 @@ typedef enum Conversion {
     ConversionOnlyEncode
 } Conversion;
 
+/* describes whether we are using a file (with a filename) or using
+stdin/stdout */
+typedef enum InputKind {
+    InputKindFileName,
+    InputKindStdio
+} InputKind;
+
+typedef enum OutputKind {
+    OutputKindFileName,
+    OutputKindStdio,
+    OutputKindNone /* used for --dry-run */
+} OutputKind;
+
 typedef struct {
     int exit_with_error;   /* if non-zero, exit with that error code */
     int exit_with_success; /* if non-zero, exit successfully */
     Conversion conversion;
+    InputKind input_kind; /* opening a file vs. reading from stdin */
     const char *input_filename;
+    OutputKind output_kind;
     const char *output_filename; /* null if we're doing a dry run */
 } ParseArgsResult;
 
@@ -75,25 +90,38 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
     BOOL help_arg, dry_run, valid_args, raw_args;
     int i;
 
+    enum {
+        MainArgStepInputFile = 0,
+        MainArgStepOutputFile = 1,
+        MainArgStepDone = 2
+    } main_arg_step = MainArgStepInputFile;
+
     result.exit_with_error = 0;
     result.exit_with_success = 0;
     result.conversion = ConversionAutoDetect;
+    result.input_kind = InputKindStdio;
     result.input_filename = NULL;
+    result.output_kind = OutputKindStdio;
     result.output_filename = NULL;
 
     help_arg = FALSE;
     dry_run = FALSE;
-    valid_args = FALSE;
+    valid_args = TRUE;
     raw_args = FALSE;
     for (i = 1; i < argc; ++i) {
-        if (raw_args
-                || strncmp("-", argv[i], 1)
-                || !strcmp("-", argv[i])) {
-            if (!result.input_filename) {
+        if (!valid_args) {
+            continue;
+        } else if (raw_args || strncmp("-", argv[i], 1)) {
+            if (main_arg_step == MainArgStepInputFile) {
                 result.input_filename = argv[i];
-                valid_args = TRUE;
-            } else if (!result.output_filename) {
+                result.input_kind = InputKindFileName;
                 result.output_filename = argv[i];
+                result.output_kind = OutputKindFileName;
+                main_arg_step = MainArgStepOutputFile;
+            } else if (main_arg_step == MainArgStepOutputFile) {
+                result.output_filename = argv[i];
+                result.output_kind = OutputKindFileName;
+                main_arg_step = MainArgStepDone;
             } else {
                 /* too many args */
                 valid_args = FALSE;
@@ -110,6 +138,18 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
         } else if (!strcmp(argv[i], "--encode")
                 || !strcmp(argv[i], "-e")) {
             result.conversion = ConversionOnlyEncode;
+        } else if (!strcmp(argv[i], "-")) {
+            if (main_arg_step == MainArgStepInputFile) {
+                result.input_kind = InputKindStdio;
+                result.output_kind = OutputKindStdio;
+                main_arg_step = MainArgStepOutputFile;
+            } else if (main_arg_step == MainArgStepOutputFile) {
+                result.output_kind = OutputKindStdio;
+                main_arg_step = MainArgStepDone;
+            } else {
+                /* too many args */
+                valid_args = FALSE;
+            }
         } else if (!strcmp(argv[i], "--")) {
             raw_args = TRUE;
         } else {
@@ -118,10 +158,13 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
         }
     }
 
-    if (!dry_run && !result.output_filename) {
-        result.output_filename = result.input_filename;
-    } else if (dry_run) {
-        result.output_filename = NULL;
+    if (main_arg_step == MainArgStepInputFile
+            && result.conversion == ConversionAutoDetect) {
+        valid_args = FALSE;
+    }
+
+    if (dry_run) {
+        result.output_kind = OutputKindNone;
     }
 
     if (valid_args && !help_arg) {
@@ -152,14 +195,14 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
 
 static int cleanup_files(FILE *input, FILE *temp_output,
                   const char *temp_output_filename,
-                  const char *real_output_filename) {
-    if (temp_output && temp_output != stdout) {
+                  ParseArgsResult args) {
+    if (args.output_kind == OutputKindFileName && temp_output) {
         fclose(temp_output);
     }
-    if (input != stdin) {
+    if (args.input_kind == InputKindFileName) {
         fclose(input);
     }
-    if (!real_output_filename)
+    if (args.output_kind != OutputKindFileName)
         return 0;
     if (!temp_output_filename[0]) {
         /* we wrote directly to the target file,
@@ -167,7 +210,7 @@ static int cleanup_files(FILE *input, FILE *temp_output,
         return 0;
     }
 #ifdef _MSC_VER
-    if (-1 == remove(real_output_filename)) {
+    if (-1 == remove(args.output_filename)) {
         if (errno != ENOENT) {
             /* target file does exist but we cannot delete it */
             fprintf(stderr, "Unable to remove file `%s`: %s\n",
@@ -176,10 +219,10 @@ static int cleanup_files(FILE *input, FILE *temp_output,
         }
     }
 #endif
-    if (-1 == rename(temp_output_filename, real_output_filename)) {
+    if (-1 == rename(temp_output_filename, args.output_filename)) {
         fprintf(stderr, "Unable to rename file `%s` to `%s`: %s\n",
             temp_output_filename,
-            real_output_filename,
+            args.output_filename,
             strerror(errno));
         return 1;
     }
@@ -355,34 +398,37 @@ static int try_to_hex(FILE *input_file, FILE *output_file,
 }
 
 static int open_files(FILE **input_file, FILE **output_file,
-               const char *input_filename, const char *output_filename,
-               char *output_filename_buffer) {
-    if (!strcmp(input_filename, "-")) {
+               ParseArgsResult args, char *output_filename_buffer) {
+    if (args.input_kind == InputKindStdio) {
         *input_file = stdin;
-    } else {
-        *input_file = fopen(input_filename, "rb");
+    } else if (args.input_kind == InputKindFileName) {
+        *input_file = fopen(args.input_filename, "rb");
         if (!*input_file) {
             fprintf(stderr,
                 "Unable to open file `%s` for reading: %s\n",
-                input_filename, strerror(errno));
+                args.input_filename, strerror(errno));
             return StatusCodeFailedToOpenFiles;
         }
+    } else {
+        /* should be unreachable */
+        return StatusCodeFailedToOpenFiles;
     }
 
     *output_file = NULL;
-    if (output_filename) {
-        if (!strcmp(output_filename, "-")) {
-            *output_file = stdout;
-        } else if (!strcmp(output_filename, input_filename)) {
+    if (args.output_kind == OutputKindStdio) {
+        *output_file = stdout;
+    } else if (args.output_kind == OutputKindFileName) {
+        if (args.input_kind == InputKindFileName
+                && !strcmp(args.output_filename, args.input_filename)) {
             /* if the filenames are the same we need a temp file */
             *output_file = open_temporary_file(output_filename_buffer);
         } else {
             /* otherwise open the file directly */
-            *output_file = fopen(output_filename, "wb");
+            *output_file = fopen(args.output_filename, "wb");
             if (!*output_file) {
                 fprintf(stderr,
                     "Unable to open file `%s` for writing: %s\n",
-                    output_filename, strerror(errno));
+                    args.output_filename, strerror(errno));
                 if (*input_file) {
                     fclose(*input_file);
                 }
@@ -396,8 +442,6 @@ static int open_files(FILE **input_file, FILE **output_file,
 
 int main(int argc, const char *argv[]) {
     ParseArgsResult parse_args_result;
-    const char *input_filename;
-    const char *output_filename;
     FILE *input_file, *output_file;
     char output_filename_buffer[TEMP_FILENAME_SIZE];
     size_t from_hex_read_buffer_length;
@@ -411,12 +455,9 @@ int main(int argc, const char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-    input_filename = parse_args_result.input_filename;
-    output_filename = parse_args_result.output_filename;
-
     output_filename_buffer[0] = '\0';
     if (open_files(&input_file, &output_file,
-            input_filename, output_filename,
+            parse_args_result,
             output_filename_buffer)) {
         return StatusCodeFailedToOpenFiles;
     }
@@ -436,7 +477,8 @@ int main(int argc, const char *argv[]) {
     switch (res) {
         case 0: /* success */
             if (cleanup_files(input_file, output_file,
-                    output_filename_buffer, output_filename)) {
+                    output_filename_buffer,
+                    parse_args_result)) {
                 return StatusCodeFailedCleanup;
             }
             return EXIT_SUCCESS;
@@ -455,7 +497,8 @@ int main(int argc, const char *argv[]) {
                 from_hex_read_buffer, from_hex_read_buffer_length);
             if (res == 0) {
                 if (cleanup_files(input_file, output_file,
-                        output_filename_buffer, output_filename)) {
+                        output_filename_buffer,
+                        parse_args_result)) {
                     return StatusCodeFailedCleanup;
                 }
                 return EXIT_SUCCESS;
