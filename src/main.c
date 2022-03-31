@@ -72,17 +72,20 @@ static const char *USAGE_STRING =
 and print usage description on error */
 static ParseArgsResult parse_args(int argc, const char *argv[]) {
     ParseArgsResult result;
+    BOOL help_arg, dry_run, valid_args, raw_args;
+    int i;
+
     result.exit_with_error = 0;
     result.exit_with_success = 0;
     result.conversion = ConversionAutoDetect;
     result.input_filename = NULL;
     result.output_filename = NULL;
 
-    BOOL help_arg = FALSE;
-    BOOL dry_run = FALSE;
-    BOOL valid_args = FALSE;
-    BOOL raw_args = FALSE;
-    for (int i = 1; i < argc; ++i) {
+    help_arg = FALSE;
+    dry_run = FALSE;
+    valid_args = FALSE;
+    raw_args = FALSE;
+    for (i = 1; i < argc; ++i) {
         if (raw_args || strncmp("-", argv[i], 1)) {
             if (!result.input_filename) {
                 result.input_filename = argv[i];
@@ -197,16 +200,19 @@ static FromHexData init_from_hex_data() {
 
 static int hex_to_chars(
         FromHexData *data, char c, FILE *output_stream) {
+    int first_char, second_char;
+    char output;
+
     if (data->prev_byte) {
         if ((c >= '0' && c <= '9')
                 || (c >= 'a' && c <= 'f')
                 || (c >= 'A' && c <= 'F')) {
-            int first_char = hex_char_to_int(data->prev_byte);
+            first_char = hex_char_to_int(data->prev_byte);
             if (first_char < 0) {
                 return 1;
             }
-            char output = (char)(first_char << 4);
-            int second_char = hex_char_to_int(c);
+            output = (char)(first_char << 4);
+            second_char = hex_char_to_int(c);
             if (second_char < 0) {
                 return 1;
             }
@@ -306,31 +312,35 @@ static int try_from_hex(FILE *input_file,
 static int try_to_hex(FILE *input_file, FILE *output_file,
         const char *from_hex_read_buffer,
         size_t from_hex_read_buffer_length) {
+    uint64_t addr, output_data_len;
+    size_t i;
+
+    /* BLOCK_BATCH describes the number of blocks (sets of 16 bytes)
+        to convert at once. Each block produces 81 bytes of output. */
+    enum { BLOCK_BATCH = 64 };
+
+    char output[81 * BLOCK_BATCH];
+    char input[16 * BLOCK_BATCH];
+
     if (output_file) {
         fputs(header, output_file);
         fputc('\n', output_file);
     }
     
-    /* BLOCK_BATCH describes the number of blocks (sets of 16 bytes)
-        to convert at once. Each block produces 81 bytes of output. */
-    enum { BLOCK_BATCH = 64 };
-    uint64_t addr = 0;
-    char output[81 * BLOCK_BATCH];
-    char input[16 * BLOCK_BATCH];
+    addr = 0;
     
     /* read in chars already read in by try_from_hex */
     memcpy(input, from_hex_read_buffer, from_hex_read_buffer_length);
     
     for (;;) {
-        size_t i = from_hex_read_buffer_length
+        i = from_hex_read_buffer_length
             + fread(input + from_hex_read_buffer_length,
                     1,
                     16 * (size_t)BLOCK_BATCH
                         - from_hex_read_buffer_length,
                     input_file);
         from_hex_read_buffer_length = 0;
-        uint64_t output_data_len = bin_data_to_hex(
-            input, i, addr, output);
+        output_data_len = bin_data_to_hex(input, i, addr, output);
         addr += i;
         if (output_file) {
             fwrite(output, output_data_len, 1, output_file);
@@ -383,18 +393,25 @@ static int open_files(FILE **input_file, FILE **output_file,
 }
 
 int main(int argc, const char *argv[]) {
-    ParseArgsResult parse_args_result = parse_args(argc, argv);
+    ParseArgsResult parse_args_result;
+    const char *input_filename;
+    const char *output_filename;
+    FILE *input_file, *output_file;
+    char output_filename_buffer[TEMP_FILENAME_SIZE];
+    size_t from_hex_read_buffer_length;
+    char from_hex_read_buffer[HEADER_LENGTH];
+    int res;
+
+    parse_args_result = parse_args(argc, argv);
     if (parse_args_result.exit_with_error) {
         return parse_args_result.exit_with_error;
     } else if (parse_args_result.exit_with_success) {
         return EXIT_SUCCESS;
     }
 
-    const char *input_filename = parse_args_result.input_filename;
-    const char *output_filename = parse_args_result.output_filename;
+    input_filename = parse_args_result.input_filename;
+    output_filename = parse_args_result.output_filename;
 
-    FILE *input_file, *output_file;
-    char output_filename_buffer[TEMP_FILENAME_SIZE];
     output_filename_buffer[0] = '\0';
     if (open_files(&input_file, &output_file,
             input_filename, output_filename,
@@ -403,14 +420,14 @@ int main(int argc, const char *argv[]) {
     }
     
     /* store read characters in case we need to retry as to_hex. */
-    size_t from_hex_read_buffer_length = 0;
-    char from_hex_read_buffer[HEADER_LENGTH] = {0};
+    from_hex_read_buffer_length = 0;
+    memset(from_hex_read_buffer, 0, HEADER_LENGTH);
 
     if (parse_args_result.conversion == ConversionOnlyEncode) {
         goto try_encode;
     }
     
-    int res = try_from_hex(
+    res = try_from_hex(
         input_file, output_file,
         from_hex_read_buffer, &from_hex_read_buffer_length,
         parse_args_result.conversion == ConversionAutoDetect);
