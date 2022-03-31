@@ -14,8 +14,8 @@ correct version number (e.g. `1.0.0`)
 #define VERSION_STR STR_VALUE_2(HEXTOGGLE_VERSION)
 
 /* main usage string, but doesn't include return codes */
-static const char *USAGE_STRING = 
-"hextoggle v" VERSION_STR "\n"
+static const char *USAGE_STRING =
+"hextoggle " VERSION_STR "\n"
 "\n"
 "Usage: hextoggle [file]            # toggle file in-place\n"
 "       hextoggle [input] [output]  # read `input`, write to `output`\n"
@@ -27,11 +27,28 @@ static const char *USAGE_STRING =
 "       -h  --help     # show this usage information\n"
 "       -n  --dry-run  # discard results\n"
 "       -v  --verbose  # enable verbose output\n"
+"       -V  --version  # show version number and quit\n"
 "\n";
+
+static void print_help_screen(FILE *file) {
+    fprintf(file, "%s", USAGE_STRING);
+    fprintf(file, "Return codes:\n");
+    fprintf(file, "  %i   success\n", EXIT_SUCCESS);
+    fprintf(file, "  %i   invalid arguments\n",
+        StatusCodeInvalidArgs);
+    fprintf(file, "  %i   failed to open input files\n",
+        StatusCodeFailedToOpenFiles);
+    fprintf(file, "  %i   failed to clean up files\n",
+        StatusCodeFailedCleanup);
+    fprintf(file, "  %i   invalid input\n",
+        StatusCodeInvalidInput);
+    fprintf(file, "  %i   internal assertion failed\n",
+        StatusCodeAssertionFailed);
+}
 
 Args parse_args(int argc, const char *argv[]) {
     Args result;
-    BOOL help_arg, dry_run, valid_args, raw_args;
+    BOOL help_arg, dry_run, valid_args, raw_args, version_arg;
     int i;
 
     enum {
@@ -50,6 +67,7 @@ Args parse_args(int argc, const char *argv[]) {
     result.output_filename = NULL;
 
     help_arg = FALSE;
+    version_arg = FALSE;
     dry_run = FALSE;
     valid_args = TRUE;
     raw_args = FALSE;
@@ -86,6 +104,9 @@ Args parse_args(int argc, const char *argv[]) {
         } else if (!strcmp(argv[i], "--verbose")
                 || !strcmp(argv[i], "-v")) {
             result.verbose = TRUE;
+        } else if (!strcmp(argv[i], "--version")
+                || !strcmp(argv[i], "-V")) {
+            version_arg = TRUE;
         } else if (!strcmp(argv[i], "-")) {
             if (main_arg_step == MainArgStepInputFile) {
                 result.input_kind = InputKindStdio;
@@ -107,7 +128,9 @@ Args parse_args(int argc, const char *argv[]) {
     }
 
     if (main_arg_step == MainArgStepInputFile
-            && result.conversion == ConversionAutoDetect) {
+            && result.conversion == ConversionAutoDetect
+            && !help_arg
+            && !version_arg) {
         valid_args = FALSE;
     }
 
@@ -115,28 +138,16 @@ Args parse_args(int argc, const char *argv[]) {
         result.output_kind = OutputKindNone;
     }
 
-    if (valid_args && !help_arg) {
-        return result;
-    }
-
-    fprintf(stderr, "%s", USAGE_STRING);
-    fprintf(stderr, "Return codes:\n");
-    fprintf(stderr, "  %i   success\n", EXIT_SUCCESS);
-    fprintf(stderr, "  %i   invalid arguments\n",
-        StatusCodeInvalidArgs);
-    fprintf(stderr, "  %i   failed to open input files\n",
-        StatusCodeFailedToOpenFiles);
-    fprintf(stderr, "  %i   failed to clean up files\n",
-        StatusCodeFailedCleanup);
-    fprintf(stderr, "  %i   invalid input\n",
-        StatusCodeInvalidInput);
-    fprintf(stderr, "  %i   internal assertion failed\n",
-        StatusCodeAssertionFailed);
-
-    if (help_arg) {
-        result.exit_with_success = 1;
-    } else {
+    if (!valid_args) {
+        print_help_screen(stderr);
         result.exit_with_error = StatusCodeInvalidArgs;
+    } else if (help_arg) {
+        print_help_screen(stdout);
+        result.exit_with_success = 1;
+    } else if (version_arg) {
+        printf("%s\n", "hextoggle " VERSION_STR);
+        result.exit_with_success = 1;
     }
+
     return result;
 }
