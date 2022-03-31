@@ -86,7 +86,9 @@ static ParseArgsResult parse_args(int argc, const char *argv[]) {
     valid_args = FALSE;
     raw_args = FALSE;
     for (i = 1; i < argc; ++i) {
-        if (raw_args || strncmp("-", argv[i], 1)) {
+        if (raw_args
+                || strncmp("-", argv[i], 1)
+                || !strcmp("-", argv[i])) {
             if (!result.input_filename) {
                 result.input_filename = argv[i];
                 valid_args = TRUE;
