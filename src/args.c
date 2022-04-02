@@ -4,11 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if !defined(HEXTOGGLE_VERSION)
-/* be careful not to indent the line after the backslash */
-#error Make sure `HEXTOGGLE_VERSION` is set to the \
-correct version number (e.g. `1.0.0`)
+#ifndef HEXTOGGLE_VERSION
+#define HEXTOGGLE_VERSION 1.0.4
 #endif
+
 #define STR_VALUE(arg) #arg
 #define STR_VALUE_2(name) STR_VALUE(name)
 #define VERSION_STR STR_VALUE_2(HEXTOGGLE_VERSION)

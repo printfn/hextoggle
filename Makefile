@@ -1,24 +1,24 @@
 .POSIX:
 
-# ?= allows overriding via environment variables
-# += adds to an environment variable if one exists
+# Override the prefix by running e.g. `make PREFIX=.`
+PREFIX = /usr/local
 
 # All assignments (`?=`, `+=`, or `=`) can be overridden
 #     by calling make as e.g. `make VAR=custom_value`
 
-# include version number and prefix directory (defaults to `/usr/local`)
-include config.mk
-
-ifndef VERSION
-$(error Make sure `VERSION` is set to the \
-	correct version number, e.g. `1.0.0`)
-endif
+# ?= allows overriding via environment variables
+# += adds to an environment variable if one exists
 
 CC ?= gcc
 CFLAGS += -O3 -g -Wall -std=c99
 LDFLAGS +=
 BUILD_DIR = build
 TARGET = ./$(BUILD_DIR)/hextoggle
+
+# Version can be overridden
+ifdef VERSION
+CFLAGS += -DHEXTOGGLE_VERSION="$(VERSION)"
+endif
 
 # REPRODUCIBLE BUILDS
 # set timestamps to 0 (used by libtool and ld64 on macOS)
@@ -59,10 +59,9 @@ build: $(TARGET)
 default: build
 all: build
 
-$(BUILD_DIR)/%.o: src/%.c $(HEADERS) config.mk Makefile
+$(BUILD_DIR)/%.o: src/%.c $(HEADERS) Makefile
 	mkdir -p $(BUILD_DIR)
-	$(CC) -c -DHEXTOGGLE_VERSION="$(VERSION)" $< -o $@ \
-		$(CPPFLAGS) $(CFLAGS)
+	$(CC) -c $< -o $@ $(CPPFLAGS) $(CFLAGS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -Wall -o $@ $(LOADLIBES) $(LDLIBS)
