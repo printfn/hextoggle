@@ -18,8 +18,9 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
       with:
-        name: hextoggle-x86_64-apple-darwin
+        name: hextoggle-x86_64-macos
         path: build/hextoggle
+        if-no-files-found: error
 
   build_ubuntu:
     runs-on: ubuntu-latest
@@ -30,5 +31,29 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
       with:
-        name: hextoggle-x86_64-unknown-linux-gnu
+        name: hextoggle-x86_64-linux-gnu
         path: build/hextoggle
+        if-no-files-found: error
+
+  build_windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: make
+      run: |
+        $InstallationPath = vswhere -products * -latest -prerelease -property installationPath
+        pushd "$($InstallationPath)\VC\Auxiliary\Build"
+        cmd /c "vcvarsall.bat x64 & set" |
+        foreach {
+          if ($_ -match "=") {
+            $v = $_.split("=", 2); set-item -force -path "ENV:\$($v[0])"  -value "$($v[1])" 
+          }
+        }
+        popd
+        & cl /W4 src\*.c /link /out:hextoggle.exe
+    - name: Upload
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: hextoggle-x86_64-windows.exe
+        path: hextoggle.exe
+        if-no-files-found: error
