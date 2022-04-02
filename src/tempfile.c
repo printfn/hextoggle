@@ -14,14 +14,14 @@ static FILE *handle_errors(FILE *file, const char *filename);
 #ifdef _MSC_VER
 
 FILE *open_temporary_file(char *filename) {
-    BOOL success;
+    errno_t err;
     FILE *file;
 
-    success = tmpnam_s(filename, L_tmpnam_s) == NULL;
-    if (!success) {
+    err = tmpnam_s(filename, L_tmpnam_s);
+    if (err) {
         fprintf(stderr,
             "Error: Unable to get temp file name: %s\n",
-            strerror(errno));
+            strerror(err));
         return NULL;
     }
     file = fopen(filename, "wb");

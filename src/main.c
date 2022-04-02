@@ -94,7 +94,7 @@ static int hex_to_chars(
             if (second_char < 0) {
                 return 1;
             }
-            output += second_char;
+            output += (char)second_char;
             if (output_stream) {
                 fputc(output, output_stream);
             }
