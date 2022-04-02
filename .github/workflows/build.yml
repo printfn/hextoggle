@@ -50,7 +50,7 @@ jobs:
           }
         }
         popd
-        & cl /Wall /O2 src\*.c /link /out:hextoggle.exe
+        & cl /W4 /O2 src\*.c /link /out:hextoggle.exe
     - name: Upload
       uses: actions/upload-artifact@v3.0.0
       with:
