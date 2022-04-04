@@ -3,11 +3,6 @@
     Feel free to contribute to this project if you'd like :)
 */
 
-/* required for Visual Studio to compile */
-#ifdef _MSC_VER
-#  define _CRT_SECURE_NO_WARNINGS
-#endif
-
 #include "args.h"
 #include "bin_to_hex.h"
 #include "tempfile.h"
