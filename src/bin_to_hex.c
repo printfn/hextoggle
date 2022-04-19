@@ -33,7 +33,7 @@ static size_t bin_block_to_hex(
     output[9] = int_to_hex_char((addr >> 4) & 0xF);
     output[10] = int_to_hex_char(addr & 0xF);
     output[11] = ' ';
-    output[12] = '0' + addr / 10000000000 % 10;
+    output[12] = '0' + addr / 10000000000ull % 10;
     output[13] = '0' + addr / 1000000000 % 10;
     output[14] = '0' + addr / 100000000 % 10;
     output[15] = '0' + addr / 10000000 % 10;
