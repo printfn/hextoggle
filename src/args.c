@@ -5,7 +5,7 @@
 #include <string.h>
 
 #ifndef HEXTOGGLE_VERSION
-#define HEXTOGGLE_VERSION 1.0.5
+#define HEXTOGGLE_VERSION 1.0.6
 #endif
 
 #define STR_VALUE(arg) #arg
