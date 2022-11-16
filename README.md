@@ -38,3 +38,7 @@ Return codes:
   4   invalid input
   5   internal assertion failed
 ```
+
+## License
+
+This project is available under the GPL 3.0 or any later version.
